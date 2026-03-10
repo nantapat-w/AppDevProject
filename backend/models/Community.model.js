@@ -13,7 +13,6 @@ const communitySchema = new mongoose.Schema({
         ref:"User",
         required:true
     },
-
     // คอนเทนต์
     content:{
         type:String,
@@ -44,19 +43,16 @@ const communitySchema = new mongoose.Schema({
         ref: "Product",
         default: null
     },
-    
     // แท็ก (เช่น "#หาของ", "#รีวิว")
     tags: [{ 
         type: String,
         trim: true 
     }],
-
     // คนที่มากดไลค์ (เก็บ ID ของ User จะได้รู้ว่าใครกดบ้าง)
     likes: [{ 
         type: mongoose.Schema.Types.ObjectId, 
         ref: "User" 
     }],
-
     // คอมเมนต์ (เอา Schema ด้านบนมาฝังไว้ตรงนี้)
     comments: [commentSchema],
 

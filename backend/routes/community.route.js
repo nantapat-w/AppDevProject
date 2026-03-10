@@ -3,7 +3,8 @@ import {
     createPost, getAllPosts, getPostById, updatePost, 
     likePost, commentOnPost, deleteComment, deletePost 
 } from "../controllers/community.controller.js";
-import { verifyToken } from "../middlewares/auth.middleware.js";
+// ✅ 1. เปลี่ยนชื่อจาก verifyToken เป็น protectRoute
+import { protectRoute } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
@@ -12,12 +13,13 @@ router.get("/", getAllPosts);
 router.get("/:id", getPostById);
 
 // 🔒 ต้องล็อกอิน (ถึงจะตั้งกระทู้ ไลค์ คอมเมนต์ได้)
-router.post("/", verifyToken, createPost);
-router.put("/:id", verifyToken, updatePost);
-router.delete("/:id", verifyToken, deletePost);
+// ✅ 2. เปลี่ยน verifyToken เป็น protectRoute ให้หมดเลยครับ
+router.post("/", protectRoute, createPost);
+router.put("/:id", protectRoute, updatePost);
+router.delete("/:id", protectRoute, deletePost);
 
-router.put("/:id/like", verifyToken, likePost);
-router.post("/:id/comment", verifyToken, commentOnPost);
-router.delete("/:postId/comment/:commentId", verifyToken, deleteComment);
+router.put("/:id/like", protectRoute, likePost);
+router.post("/:id/comment", protectRoute, commentOnPost);
+router.delete("/:postId/comment/:commentId", protectRoute, deleteComment);
 
 export default router;
