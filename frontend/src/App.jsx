@@ -1,26 +1,22 @@
-import { BrowserRouter , Route , Routes } from "react-router-dom"
-import Home from "./pages/Home.jsx"
-import Signup from "./pages/Signup.jsx"
-import Login from "./pages/Login.jsx"
-import Chat from "./pages/Chat.jsx";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings'; // 🟢 เติม s ให้ตรงกัน
+
 function App() {
   return (
     <BrowserRouter>
-        <Routes>
-            {/* หน้าแรก Home */}
-          <Route path="/" element={<Home/>}></Route>
-            {/* หน้าสมัครสมาชิก */}
-          <Route path="/signup" element={<Signup/>}></Route>
-            {/* หน้า login */}
-          <Route path="/login" element={<Login/>}></Route>
-            {/* หน้ารายละเอียดสินค้า */}
-          {/* <Route path="/product/:id" element={<ProductDetail/>}></Route> */}
-
-          <Route path="/chat" element={<Chat/>} />
-
-        </Routes>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/settings" element={<Settings />} />
+      </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -1,81 +1,128 @@
-import { useState } from "react";
-import { Link } from "react-router-dom"; // นำเข้า Link เพื่อกดกลับไปหน้า Signup หรือ Home
+import React, { useState } from 'react';
+import { Lock, User, ArrowRight, Loader2, Repeat, ArrowLeft } from 'lucide-react'; // 🟢 นำเข้า Repeat เพิ่ม
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
-function Login() {
-    const [formData, setFormData] = useState({
-        email: '',
-        password: '',
-    });
+const Login = () => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ identifier: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        console.log("พยายามเข้าสู่ระบบด้วย:", formData);
-        // เดี๋ยวเราจะใช้ axios.post('/api/auth/login', formData) เชื่อมกับ Controller
-    };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg('');
 
-    return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-[#030014] relative overflow-hidden">
-            {/* แสง Glow พื้นหลังเหมือนหน้า Signup */}
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px]"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px]"></div>
+    try {
+      const response = await axios.post('http://localhost:5000/api/auth/login', formData, {
+        withCredentials: true 
+      });
+      
+      if (response.data.success) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        navigate('/');
+      }
+    } catch (error) {
+      setErrorMsg(error.response?.data?.message || 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            {/* กล่อง Login Glassmorphism */}
-            <div className="bg-white/[0.02] backdrop-blur-3xl w-full max-w-[400px] rounded-[3rem] shadow-2xl p-10 border border-white/10 relative z-10">
-                
-                <div className="text-center mb-10">
-                    <Link to="/">
-                        <h2 className="text-4xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-tight">
-                        Log In
-                         </h2>
-                    </Link>
-                    <p className="text-gray-400 mt-3 text-sm font-medium">ยินดีต้อนรับกลับมา!</p>
-                </div>
-                
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* ช่องอีเมล */}
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 ml-4 uppercase tracking-[0.2em]">Email</label>
-                        <input
-                            type="email"
-                            name="email"
-                            onChange={handleChange}
-                            className="w-full px-6 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white focus:ring-2 focus:ring-blue-500/50 focus:outline-none transition-all"
-                            placeholder="you@example.com"
-                            required
-                        />
-                    </div>
+  return (
+    <div className="min-h-screen bg-[#05050f] flex items-center justify-center p-4 font-sans text-white relative overflow-hidden">
+      {/* Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#4361ee] opacity-10 blur-[120px] rounded-full pointer-events-none"></div>
 
-                    {/* ช่องรหัสผ่าน */}
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 ml-4 uppercase tracking-[0.2em]">Password</label>
-                        <input
-                            type="password"
-                            name="password"
-                            onChange={handleChange}
-                            className="w-full px-6 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white focus:ring-2 focus:ring-blue-500/50 focus:outline-none transition-all"
-                            placeholder="••••••••"
-                            required
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        className="w-full py-4 rounded-2xl font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all transform hover:-translate-y-1 active:scale-95"
-                    >
-                        Sign In
-                    </button>
-
-                    <p className="text-center text-gray-500 text-xs mt-8">
-                        ยังไม่มีบัญชี? <Link to="/signup" className="text-blue-400 font-bold hover:text-blue-300 transition-colors">Sign Up</Link>
-                    </p>
-                </form>
-            </div>
+      {/* 🟢 ปุ่ม Logo กลับหน้าหลัก (มุมซ้ายบน) */}
+      <Link to="/" className="absolute top-6 left-6 md:top-10 md:left-10 flex items-center gap-2 hover:opacity-80 transition z-20 group">
+        <div className="w-10 h-10 rounded-xl bg-[#151522] border border-[#2a2a3e] flex items-center justify-center group-hover:border-[#4361ee] transition-all">
+          <ArrowLeft className="text-gray-400 w-5 h-5 group-hover:text-white transition-colors" />
         </div>
-    );
-}
+        <div className="hidden sm:flex items-center gap-2 ml-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#8b2cf5] to-[#4361ee] flex items-center justify-center shadow-[0_0_15px_rgba(67,97,238,0.4)]">
+            <Repeat className="text-white w-5 h-5" />
+          </div>
+          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">
+            TradeApp
+          </span>
+        </div>
+      </Link>
+
+      <div className="w-full max-w-md bg-[#0a0a16] border border-[#2a2a3e] rounded-2xl p-8 shadow-2xl relative z-10">
+        
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] mb-3">
+            Welcome Back
+          </h1>
+          <p className="text-gray-400 text-sm">เข้าสู่ระบบเพื่อดำเนินการต่อ</p>
+        </div>
+
+        {errorMsg && (
+          <div className="bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-3 rounded-lg mb-6 text-center">
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* EMAIL OR USERNAME */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-gray-400 tracking-wider">EMAIL OR USERNAME</label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input 
+                type="text" name="identifier" required
+                value={formData.identifier} onChange={handleChange}
+                placeholder="ใส่อีเมล หรือ ชื่อผู้ใช้"
+                className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-lg py-3.5 pl-11 pr-4 focus:outline-none focus:border-[#4361ee] transition-all text-sm placeholder-gray-600"
+              />
+            </div>
+          </div>
+
+          {/* PASSWORD */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center mb-1">
+                <label className="text-[11px] font-bold text-gray-400 tracking-wider">PASSWORD</label>
+                <Link to="/forgot-password" className="text-[11px] text-[#4361ee] hover:underline">ลืมรหัสผ่าน?</Link>
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input 
+                type="password" name="password" required
+                value={formData.password} onChange={handleChange}
+                placeholder="••••••••"
+                className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-lg py-3.5 pl-11 pr-4 focus:outline-none focus:border-[#4361ee] transition-all text-sm placeholder-gray-600"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-[#4361ee] to-[#8b2cf5] text-white font-bold py-3.5 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+              <>
+                Sign In <ArrowRight className="w-4 h-4 ml-1" />
+              </>
+            )}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center text-sm text-gray-400 border-t border-[#2a2a3e] pt-6">
+          ยังไม่มีบัญชีใช่ไหม? {' '}
+          <Link to="/signup" className="text-[#4361ee] font-bold hover:underline">
+            สมัครสมาชิกฟรี
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default Login;

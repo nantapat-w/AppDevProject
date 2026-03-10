@@ -1,119 +1,133 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from 'react';
+import { Mail, Lock, User, Loader2, ArrowLeft, Repeat } from 'lucide-react'; // 🟢 เพิ่ม ArrowLeft กับ Repeat
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
-function Signup() {
-    const [formData, setFormData] = useState({
-        fullName: '',
-        email: '',
-        password: '',
-    });
+const Signup = () => {
+  const navigate = useNavigate();
+  // 🟢 ตรงกับ Backend ของเราเป๊ะๆ: username, email, password
+  const [formData, setFormData] = useState({ username: '', email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        console.log("ข้อมูลที่จะส่งไป Backend Controller:", formData);
-    };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg('');
 
-    return (
-        // พื้นหลังโทนอวกาศมืด (Deep Space) พร้อมแสง Glow นุ่มๆ
-        <div className="min-h-screen flex items-center justify-center p-6 bg-[#030014] relative overflow-hidden">
-            
-            {/* แสง Glow ตกแต่งพื้นหลัง (ม่วง-น้ำเงิน) */}
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px]"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px]"></div>
+    try {
+      // 🚀 ยิง API สมัครสมาชิก
+      const response = await axios.post('http://localhost:5000/api/auth/register', formData);
+      
+      if (response.data.success) {
+        alert('🎉 สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
+        navigate('/login');
+      }
+    } catch (error) {
+      setErrorMsg(error.response?.data?.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            {/* กล่อง Glassmorphism: เน้นความมน (3xl) และความใสที่เห็นแสงด้านหลัง */}
-            <div className="bg-white/[0.02] backdrop-blur-3xl w-full max-w-[420px] rounded-[3rem] shadow-2xl p-10 border border-white/10 relative z-10">
-                
-                <div className="text-center mb-10">
-                    <Link to="/">
-                        <h2 className="text-4xl font-black bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent tracking-tight">
-                        Sign Up
-                        </h2>
-                    </Link>
-                    <p className="text-gray-400 mt-3 text-sm font-medium">สร้างบัญชีเพื่อเริ่มต้นใช้งาน</p>
-                </div>
-                
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    
-                    {/* Input: ใช้ทรงมนพิเศษ (2xl) และพื้นหลังใสมาก */}
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 ml-4 uppercase tracking-[0.2em]">Full Name</label>
-                        <input
-                            type="text"
-                            name="fullName"
-                            value={formData.fullName}
-                            onChange={handleChange}
-                            className="w-full px-6 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all placeholder-gray-600"
-                            placeholder="Your Name"
-                            required
-                        />
-                    </div>
+  return (
+    <div className="min-h-screen bg-[#05050f] flex items-center justify-center p-4 font-sans text-white relative overflow-hidden">
+      {/* Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#8b2cf5] opacity-10 blur-[120px] rounded-full pointer-events-none"></div>
 
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 ml-4 uppercase tracking-[0.2em]">Email Address</label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            className="w-full px-6 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all placeholder-gray-600"
-                            placeholder="you@example.com"
-                            required
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 ml-4 uppercase tracking-[0.2em]">Password</label>
-                        <input
-                            type="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            className="w-full px-4 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all placeholder-gray-600 text-center tracking-[0.5em]"
-                            placeholder="••••••••"
-                            required
-                        />
-                    </div>
-
-                    {/* ปุ่มสมัครสมาชิก: ไล่สี Gradient และใส่เงา Glow (Neon Effect) */}
-                    <button
-                        type="submit"
-                        className="w-full py-4 rounded-2xl font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 shadow-[0_0_20px_rgba(147,51,234,0.3)] transition-all transform hover:-translate-y-1 active:scale-95 mt-4"
-                    >
-                        Create Account
-                    </button>
-
-                    <div className="relative py-4">
-                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5"></span></div>
-                        <div className="relative flex justify-center text-[10px] uppercase tracking-widest text-gray-600 font-bold">หรือสมัครด้วย</div>
-                    </div>
-
-                    {/* ปุ่ม Social Login: ทรงมนรับกับส่วนบน */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <button type="button" className="flex items-center justify-center py-3 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-white text-xs font-bold">
-                            <img src="https://www.svgrepo.com/show/355037/google.svg" className="w-4 h-4 mr-2" alt="Google" />
-                            GOOGLE
-                        </button>
-                        <button type="button" className="flex items-center justify-center py-3 bg-[#1877F2]/10 border border-[#1877F2]/20 rounded-2xl hover:bg-[#1877F2]/20 transition-all text-white text-xs font-bold">
-                            <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" className="w-4 h-4 mr-2" alt="Facebook" />
-                            FACEBOOK
-                        </button>
-                    </div>
-
-                    <p className="text-center text-gray-500 text-sm mt-8"> 
-                    เป็นสมาชิกอยู่แล้ว? 
-                     <Link to="/login" className="text-purple-400 font-bold 
-                     hover:text-purple-300 transition-colors ml-1">Log in</Link>
-                    </p>
-
-                </form>
-            </div>
+      {/* 🟢 ปุ่ม Logo กลับหน้าหลัก (มุมซ้ายบน) */}
+      <Link to="/" className="absolute top-6 left-6 md:top-10 md:left-10 flex items-center gap-2 hover:opacity-80 transition z-20 group">
+        <div className="w-10 h-10 rounded-xl bg-[#151522] border border-[#2a2a3e] flex items-center justify-center group-hover:border-[#8b2cf5] transition-all">
+          <ArrowLeft className="text-gray-400 w-5 h-5 group-hover:text-white transition-colors" />
         </div>
-    );
-}
+        <div className="hidden sm:flex items-center gap-2 ml-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#8b2cf5] to-[#4361ee] flex items-center justify-center shadow-[0_0_15px_rgba(139,44,245,0.4)]">
+            <Repeat className="text-white w-5 h-5" />
+          </div>
+          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">
+            TradeApp
+          </span>
+        </div>
+      </Link>
+
+      <div className="w-full max-w-md bg-[#0a0a16] border border-[#2a2a3e] rounded-2xl p-8 shadow-2xl relative z-10">
+        
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-[#8b2cf5] mb-3">Sign Up</h1>
+          <p className="text-gray-400 text-sm">สร้างบัญชีเพื่อเริ่มต้นใช้งาน</p>
+        </div>
+
+        {errorMsg && (
+          <div className="bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-3 rounded-lg mb-6 text-center">
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* USERNAME */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-gray-400 tracking-wider">USERNAME</label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input 
+                type="text" name="username" required minLength="3" maxLength="20"
+                value={formData.username} onChange={handleChange}
+                placeholder="ชื่อผู้ใช้ของคุณ"
+                className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-lg py-3 pl-11 pr-4 focus:outline-none focus:border-[#8b2cf5] transition-all text-sm placeholder-gray-600"
+              />
+            </div>
+          </div>
+
+          {/* EMAIL */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-gray-400 tracking-wider">EMAIL ADDRESS</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input 
+                type="email" name="email" required
+                value={formData.email} onChange={handleChange}
+                placeholder="you@example.com"
+                className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-lg py-3 pl-11 pr-4 focus:outline-none focus:border-[#8b2cf5] transition-all text-sm placeholder-gray-600"
+              />
+            </div>
+          </div>
+
+          {/* PASSWORD */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-gray-400 tracking-wider">PASSWORD</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input 
+                type="password" name="password" required minLength="6"
+                value={formData.password} onChange={handleChange}
+                placeholder="••••••••"
+                className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-lg py-3 pl-11 pr-4 focus:outline-none focus:border-[#8b2cf5] transition-all text-sm placeholder-gray-600"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] text-white font-bold py-3.5 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 mt-6 disabled:opacity-70"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center text-sm text-gray-400 border-t border-[#2a2a3e] pt-6">
+          มีบัญชีอยู่แล้วใช่ไหม? {' '}
+          <Link to="/login" className="text-[#8b2cf5] font-bold hover:underline">
+            เข้าสู่ระบบที่นี่
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default Signup;
