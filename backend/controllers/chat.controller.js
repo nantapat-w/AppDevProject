@@ -3,13 +3,24 @@ import Chat from "../models/Chat.model.js";
 // 📨 1. ส่งข้อความ (ถ้าไม่มีห้องแชทจะสร้างให้ใหม่อัตโนมัติ)
 export const sendMessage = async (req, res) => {
     try {
-        const { receiverId, content } = req.body;
+        // 🟢 รับ chatType มาจากหน้าบ้านด้วย (ถ้าไม่ส่งมาให้ถือว่าเป็น GENERAL)
+        const { receiverId, content, chatType = "GENERAL" } = req.body;
         const senderId = req.user._id;
 
-        // ค้นหาห้องแชทที่มีทั้งเราและเขา
+        // 🟢 หาห้องแชทที่ตรงกับประเภทด้วย
         let chat = await Chat.findOne({
-            participants: { $all: [senderId, receiverId] }
+            participants: { $all: [senderId, receiverId] },
+            chatType: chatType 
         });
+
+        // ถ้าไม่มีให้สร้างใหม่พร้อมกำหนดประเภท
+        if (!chat) {
+            chat = await Chat.create({
+                participants: [senderId, receiverId],
+                chatType: chatType
+            });
+        }
+        // ... (ส่วนที่เหลือ push messages เหมือนเดิม)
 
         // ถ้ายังไม่เคยคุยกันเลย ให้สร้างห้องแชทใหม่
         if (!chat) {

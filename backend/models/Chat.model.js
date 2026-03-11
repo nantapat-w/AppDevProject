@@ -3,6 +3,11 @@ import mongoose from "mongoose";
 const chatSchema = new mongoose.Schema({
     // เก็บ ID ของคน 2 คนที่คุยกัน
     participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], 
+    chatType: { 
+        type: String, 
+        enum: ["GENERAL", "TRADE"], 
+        default: "GENERAL" 
+    },
     messages: [
         {
             sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

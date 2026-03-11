@@ -5,8 +5,10 @@ import Signup from './pages/Signup';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings'; 
 import CreateShop from './pages/CreateShop';
-// 🟢 1. Import หน้า Shops เข้ามา
 import Shops from './pages/Shops'; 
+
+// 🟢 1. Import หน้า Chat เข้ามา (เอาคอมเมนต์ออกแล้ว)
+import Chat from './pages/Chat';
 
 function App() {
   return (
@@ -18,9 +20,10 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/create-shop" element={<CreateShop />} />
-        
-        {/* 🟢 2. เพิ่ม Route สำหรับหน้า Shops */}
         <Route path="/shops" element={<Shops />} />
+        
+        {/* 🟢 2. เปิดใช้งาน Route สำหรับหน้า Chat */}
+        <Route path="/chat" element={<Chat />} />
       </Routes>
     </BrowserRouter>
   );
