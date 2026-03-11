@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, ShoppingBag, MessageSquare, Bell, User, Star, Repeat, Users, PackageOpen, LogOut, Store } from 'lucide-react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+import logo from '../assets/logo0.png';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -45,12 +46,12 @@ const Home = () => {
       <nav className="sticky top-0 z-50 bg-[#0a0a16] border-b border-[#2a2a3e] px-4 py-3 shadow-lg">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
           
-          <Link to="/" className="flex items-center gap-2 cursor-pointer w-48">
+          <Link to="/" className="flex items-center gap-2 cursor-pointer w-fit">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#8b2cf5] to-[#4361ee] flex items-center justify-center shadow-[0_0_15px_rgba(139,44,245,0.4)]">
-              <Repeat className="text-white w-6 h-6" />
+              <img src={logo} alt="TradeApp Logo" className="w-full h-full object-cover" />
             </div>
             <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">
-              TradeApp
+              Shoplify
             </span>
           </Link>
 
