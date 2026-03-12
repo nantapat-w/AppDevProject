@@ -17,6 +17,7 @@ import chatRoutes from "./routes/chat.route.js";
 import notificationRoute from "./routes/notification.route.js";
 import reviewRoute from "./routes/review.route.js"; 
 import couponRoute from "./routes/coupon.route.js"; 
+import accountSettingRoute from "./routes/accountsetting.route.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -42,6 +43,7 @@ app.use("/api/notifications", notificationRoute);
 app.use("/api/chats", chatRoutes); 
 app.use("/api/reviews", reviewRoute); 
 app.use("/api/coupons", couponRoute); 
+app.use("/api/account-settings", accountSettingRoute);
 
 // 🚀 สตาร์ทเซิร์ฟเวอร์ และต่อ Database
 app.listen(PORT, () => {

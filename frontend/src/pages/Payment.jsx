@@ -1,17 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { CreditCard, QrCode, ArrowLeft, Loader2, CheckCircle, ChevronRight, Copy, Lock, Smartphone, Repeat, MapPin } from 'lucide-react';
 
 const PaymentPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    
+
     // ดึงข้อมูลจากตะกร้าที่ส่งมา
     const { totalAmount, items } = location.state || { totalAmount: 0, items: [] };
 
-    const [method, setMethod] = useState(''); 
+    const [method, setMethod] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+    
+    // Address state
+    const [defaultAddress, setDefaultAddress] = useState(null);
+    const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+
+    useEffect(() => {
+        fetchDefaultAddress();
+    }, []);
+
+    const fetchDefaultAddress = async () => {
+        try {
+            setIsLoadingAddress(true);
+            const res = await axios.get('http://localhost:5000/api/account-settings/addresses', { withCredentials: true });
+            if (res.data.success) {
+                const defaultAddr = res.data.addresses.find(addr => addr.isDefault);
+                setDefaultAddress(defaultAddr || null);
+            }
+        } catch (error) {
+            console.error('Error fetching default address:', error);
+        } finally {
+            setIsLoadingAddress(false);
+        }
+    };
 
     const handlePayment = (e) => {
         e.preventDefault();
@@ -19,11 +43,11 @@ const PaymentPage = () => {
             alert('กรุณาเลือกช่องทางการชำระเงิน');
             return;
         }
-        
+
         setIsProcessing(true);
         setTimeout(() => {
             setIsProcessing(false);
-            setIsSuccess(true); 
+            setIsSuccess(true);
             // Clear cart after success
             localStorage.removeItem('cart');
         }, 2000);
@@ -122,19 +146,38 @@ const PaymentPage = () => {
 
                 {/* ที่อยู่สำหรับจัดส่ง (ย้ายมาอยู่ข้างล่าง) */}
                 <div className="mb-8 bg-[#12121e] border border-[#2a2a3e] rounded-2xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                            <MapPin className="text-[#8b2cf5] w-5 h-5" />
-                            <h2 className="text-lg font-bold text-white">ที่อยู่สำหรับจัดส่ง</h2>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                        <div className="flex items-center flex-wrap gap-3">
+                            <div className="flex items-center gap-2">
+                                <MapPin className="text-[#8b2cf5] w-5 h-5" />
+                                <h2 className="text-lg font-bold text-white">ที่อยู่สำหรับจัดส่ง</h2>
+                            </div>
+                            {!isLoadingAddress && !defaultAddress && (
+                                <span className="text-xs text-red-400 font-medium px-2 py-0.5 bg-red-400/10 rounded-lg border border-red-400/20">
+                                    ยังไม่มีที่อยู่จัดส่งที่ถูกตั้งเป็นที่อยู่หลัก
+                                </span>
+                            )}
                         </div>
-                        <button className="text-xs font-bold text-[#4361ee] hover:underline flex items-center gap-1 bg-[#4361ee]/10 px-3 py-1.5 rounded-full border border-[#4361ee]/20 transition-all">
-                            แก้ไขที่อยู่
+                        <button 
+                            onClick={() => navigate('/account-settings', { state: { activeTab: 'address' } })}
+                            className="text-xs font-bold text-[#4361ee] hover:underline flex items-center gap-1 bg-[#4361ee]/10 px-3 py-1.5 rounded-full border border-[#4361ee]/20 transition-all self-start sm:self-auto"
+                        >
+                            {defaultAddress ? 'แก้ไขที่อยู่' : 'เพิ่มที่อยู่'}
                         </button>
                     </div>
-                    <div className="text-sm text-gray-400 space-y-1 pl-7">
-                        <p className="font-semibold text-gray-200 text-base">สมชาย ใจดี (+66 81 234 5678)</p>
-                        <p>123/45 ถนนทดสอบ แขวงจำลอง เขตพญาไท กรุงเทพมหานคร 10400</p>
-                    </div>
+
+                    {(isLoadingAddress || defaultAddress) && (
+                        <div className="text-sm text-gray-400 space-y-1 pl-7 animate-in fade-in duration-300">
+                            {isLoadingAddress ? (
+                                <p className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> กำลังโหลดที่อยู่...</p>
+                            ) : (
+                                <>
+                                    <p className="font-semibold text-gray-200 text-base">{defaultAddress.fullName} ({defaultAddress.phoneNumber})</p>
+                                    <p>{defaultAddress.addressLine}, {defaultAddress.subDistrict}, {defaultAddress.district}, {defaultAddress.province} {defaultAddress.zipCode}</p>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* ตัวเลือกการชำระเงิน */}
@@ -232,7 +275,7 @@ const PaymentPage = () => {
                                 { id: 'scb', name: 'SCB EASY (ไทยพาณิชย์)', color: 'purple', logo: 'https://upload.wikimedia.org/wikipedia/commons/4/40/SCB_Logo.svg' },
                                 { id: 'bbl', name: 'Bualuang mBanking (กรุงเทพ)', color: 'blue', logo: 'https://companieslogo.com/img/orig/BBL.BK-9804c636.png' }
                             ].map((bank) => (
-                                <label 
+                                <label
                                     key={bank.id}
                                     className="flex items-center justify-between p-4 border border-[#2a2a3e] rounded-xl hover:border-blue-500 transition-all bg-[#0a0a16] cursor-pointer group"
                                 >
