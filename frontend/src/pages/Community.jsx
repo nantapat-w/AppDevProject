@@ -3,7 +3,7 @@ import {
     Search, Bell, User, Star, Repeat, Users, MessageSquare,
     LogOut, Store, Heart, MessageCircle, Plus, X, ChevronLeft,
     ChevronRight, Image, Send, Flame, BookOpen, ThumbsUp, AlertTriangle,
-    PackageSearch, Sparkles, PackageOpen, Check
+    PackageSearch, Sparkles, PackageOpen, Check, Camera, Video, Trash2, Share2
 } from 'lucide-react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
@@ -65,6 +65,8 @@ const Community = () => {
     const [showNotifications, setShowNotifications] = useState(false);
 
     const [form, setForm] = useState({ content: '', postType: 'GENERAL', tags: '' });
+    const [images, setImages] = useState([]);
+    const [video, setVideo] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
 
@@ -152,21 +154,95 @@ const Community = () => {
         }
     };
 
+    const handleComment = async (postId, text) => {
+        if (!currentUser) { navigate('/login'); return; }
+        try {
+            const res = await axios.post(`${API}/community/${postId}/comment`, { text }, { withCredentials: true });
+            if (res.data.success) {
+                setPosts(prev => prev.map(p => p._id === postId ? { ...p, comments: res.data.data } : p));
+            }
+        } catch (err) { console.error('comment error', err); alert(err.response?.data?.message || 'เกิดข้อผิดพลาด'); }
+    };
+
+    const handleDeleteComment = async (postId, commentId) => {
+        if (!window.confirm('ต้องการลบคอมเมนต์นี้ใช่หรือไม่?')) return;
+        try {
+            const res = await axios.delete(`${API}/community/${postId}/comment/${commentId}`, { withCredentials: true });
+            if (res.data.success) {
+                setPosts(prev => prev.map(p => p._id === postId ? { ...p, comments: res.data.data } : p));
+            }
+        } catch (err) { console.error('delete comment error', err); alert('ไม่สามารถลบคอมเมนต์ได้'); }
+    };
+
+    const handleDeletePost = async (postId) => {
+        if (!window.confirm('ต้องการลบโพสต์นี้ใช่หรือไม่?')) return;
+        try {
+            const res = await axios.delete(`${API}/community/${postId}`, { withCredentials: true });
+            if (res.data.success) {
+                setPosts(prev => prev.filter(p => p._id !== postId));
+            }
+        } catch (err) { console.error('delete post error', err); alert('ไม่สามารถลบโพสต์ได้'); }
+    };
+
+    const handleImageChange = (e) => {
+        const files = Array.from(e.target.files);
+        if (images.length + files.length > 4) {
+            setFormError('อัปโหลดรูปภาพได้ไม่เกิน 4 รูป');
+            return;
+        }
+        setImages(prev => [...prev, ...files]);
+    };
+
+    const handleVideoChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 50 * 1024 * 1024) {
+                setFormError('วิดีโอต้องมีขนาดไม่เกิน 50MB');
+                return;
+            }
+            setVideo(file);
+        }
+    };
+
+    const removeImage = (index) => {
+        setImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const removeVideo = () => {
+        setVideo(null);
+    };
+
     const handleCreatePost = async (e) => {
         e.preventDefault();
         if (!form.content.trim()) { setFormError('กรุณาพิมพ์เนื้อหาโพสต์'); return; }
         setSubmitting(true);
         setFormError('');
         try {
-            const payload = {
-                content: form.content,
-                postType: form.postType,
-                tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-            };
-            const res = await axios.post(`${API}/community`, payload, { withCredentials: true });
+            const formData = new FormData();
+            formData.append('content', form.content);
+            formData.append('postType', form.postType);
+            
+            const tagsArray = form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+            formData.append('tags', JSON.stringify(tagsArray));
+
+            images.forEach(img => {
+                formData.append('images', img);
+            });
+
+            if (video) {
+                formData.append('video', video);
+            }
+
+            const res = await axios.post(`${API}/community`, formData, { 
+                withCredentials: true,
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
             if (res.data.success) {
                 setShowCreateModal(false);
                 setForm({ content: '', postType: 'GENERAL', tags: '' });
+                setImages([]);
+                setVideo(null);
                 fetchPosts();
             }
         } catch (err) {
@@ -274,7 +350,7 @@ const Community = () => {
                     </div>
 
                     <div className="relative bg-[#12121e] rounded-xl border border-[#2a2a3e] min-h-[300px]">
-                        {loading ? (<div className="flex justify-center items-center py-24"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#8b2cf5]" /></div>) : posts.length === 0 ? (<div className="flex flex-col items-center justify-center py-24 text-center"><MessageCircle className="w-14 h-14 mb-4 text-[#2a2a3e]" /><p className="text-gray-300 font-medium">ยังไม่มีโพสต์ในตอนนี้</p></div>) : (<div className="flex flex-col gap-4 p-4">{posts.map(post => (<PostCard key={post._id} post={post} currentUser={currentUser} liked={likedPosts.has(post._id)} onLike={() => handleLike(post._id)} />))}</div>)}
+                        {loading ? (<div className="flex justify-center items-center py-24"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#8b2cf5]" /></div>) : posts.length === 0 ? (<div className="flex flex-col items-center justify-center py-24 text-center"><MessageCircle className="w-14 h-14 mb-4 text-[#2a2a3e]" /><p className="text-gray-300 font-medium">ยังไม่มีโพสต์ในตอนนี้</p></div>) : (<div className="flex flex-col gap-4 p-4">{posts.map(post => (<PostCard key={post._id} post={post} currentUser={currentUser} liked={likedPosts.has(post._id)} onLike={() => handleLike(post._id)} onComment={handleComment} onDeleteComment={handleDeleteComment} onDeletePost={handleDeletePost} />))}</div>)}
                     </div>
                 </div>
 
@@ -341,7 +417,44 @@ const Community = () => {
                         <form onSubmit={handleCreatePost} className="p-6 flex flex-col gap-4">
                             <div className="flex items-center gap-3"><Avatar name={currentUser?.username} src={currentUser?.imageProfile} size={10} /><div><p className="font-semibold text-white text-sm">{currentUser?.username}</p><p className="text-xs text-gray-500">กำลังโพสต์ในชุมชน</p></div></div>
                             <div><label className="text-xs text-gray-400 mb-1.5 block">ประเภทโพสต์</label><div className="flex flex-wrap gap-2">{Object.entries(POST_TYPE_LABELS).filter(([k]) => k !== 'ALL').map(([key, { label, icon }]) => (<button type="button" key={key} onClick={() => setForm(f => ({ ...f, postType: key }))} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${form.postType === key ? 'bg-[#8b2cf5] border-[#8b2cf5] text-white' : 'bg-[#1c1c2b] border-[#2a2a3e] text-gray-400'}`}>{icon}{label}</button>))}</div></div>
-                            <div><textarea rows={4} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="เขียนอะไรก็ได้ที่อยากแชร์กับชุมชน..." className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#8b2cf5] resize-none transition-colors" /></div>
+                            <div>
+                                <textarea rows={4} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="เขียนอะไรก็ได้ที่อยากแชร์กับชุมชน..." className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#8b2cf5] resize-none transition-colors" />
+                            </div>
+                            
+                            {/* Media Preview Area */}
+                            {(images.length > 0 || video) && (
+                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#2a2a3e] scrollbar-track-transparent">
+                                    {images.map((img, i) => (
+                                        <div key={i} className="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-[#2a2a3e]">
+                                            <img src={URL.createObjectURL(img)} alt="preview" className="w-full h-full object-cover" />
+                                            <button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 p-1 bg-black/60 rounded-full hover:bg-black/80 transition-colors"><X className="w-3 h-3 text-white" /></button>
+                                        </div>
+                                    ))}
+                                    {video && (
+                                        <div className="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-[#2a2a3e] bg-black">
+                                            <video src={URL.createObjectURL(video)} className="w-full h-full object-cover" />
+                                            <button type="button" onClick={removeVideo} className="absolute top-1 right-1 p-1 bg-black/60 rounded-full hover:bg-black/80 transition-colors"><X className="w-3 h-3 text-white" /></button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div>
+                                <div className="flex gap-3 mb-2">
+                                    <label className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3e] hover:border-[#8b2cf5]/50 hover:bg-[#8b2cf5]/10 transition-all">
+                                        <Image className="w-4 h-4 text-gray-400" />
+                                        <span className="text-sm text-gray-300">รูปภาพ</span>
+                                        <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
+                                    </label>
+                                    <label className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3e] hover:border-[#8b2cf5]/50 hover:bg-[#8b2cf5]/10 transition-all">
+                                        <Video className="w-4 h-4 text-gray-400" />
+                                        <span className="text-sm text-gray-300">วิดีโอ</span>
+                                        <input type="file" accept="video/*" onChange={handleVideoChange} className="hidden" />
+                                    </label>
+                                </div>
+                                <p className="text-xs text-gray-500">อัปโหลดรูปภาพได้ไม่เกิน 4 รูป และวิดีโอ 1 คลิป (ขนาดรวมไม่เกิน 50MB)</p>
+                            </div>
+
                             <div><label className="text-xs text-gray-400 mb-1.5 block">แท็ก (คั่นด้วยจุลภาค)</label><input type="text" value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} placeholder="#หาของ, #รีวิว" className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#8b2cf5] transition-colors" /></div>
                             {formError && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">{formError}</p>}
                             <div className="flex justify-end gap-3 pt-2"><button type="button" onClick={() => setShowCreateModal(false)} className="px-5 py-2 rounded-lg bg-[#1c1c2b] text-gray-400 text-sm">ยกเลิก</button><button type="submit" disabled={submitting} className="flex items-center gap-2 px-6 py-2 rounded-lg bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] text-white font-medium text-sm disabled:opacity-50">{submitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-4 h-4" />}โพสต์</button></div>
@@ -354,42 +467,72 @@ const Community = () => {
 };
 
 // ═══════════════ POST CARD ═══════════════
-function PostCard({ post, currentUser, liked, onLike }) {
+function PostCard({ post, currentUser, liked, onLike, onComment, onDeleteComment, onDeletePost }) {
     const [expanded, setExpanded] = useState(false);
     const [showMenu, setShowMenu] = useState(false); 
+    const [showCommentMenu, setShowCommentMenu] = useState(null); 
+    const [showComments, setShowComments] = useState(false); 
+    const [commentText, setCommentText] = useState('');
     const navigate = useNavigate(); 
     const badgeClass = TYPE_BADGE_COLORS[post.postType] || TYPE_BADGE_COLORS.GENERAL;
     const label = POST_TYPE_LABELS[post.postType]?.label || post.postType;
     const isMe = String(currentUser?.id || currentUser?._id) === String(post.author?._id);
     const isTradeRelated = ["TRADE_OFFER", "FINDING_ITEM"].includes(post.postType);
 
-    const handleChatClick = (e, type) => {
-        e.stopPropagation(); setShowMenu(false); 
-        navigate('/chat', { state: { receiverId: post.author._id, receiverName: post.author.username, chatType: type } });
+    const handleChatClick = (e, type, overrideUser) => {
+        e.stopPropagation(); setShowMenu(false); setShowCommentMenu(null);
+        const targetUser = overrideUser || post.author;
+        navigate('/chat', { state: { receiverId: targetUser._id, receiverName: targetUser.username, chatType: type } });
     };
 
-    const handleFollowClick = async (e) => {
+    const handleFollowClick = async (e, overrideUserId) => {
         e.stopPropagation(); 
+        const targetId = overrideUserId || post.author._id;
         try {
-            const res = await axios.put(`${API}/auth/follow/${post.author._id}`, {}, { withCredentials: true });
+            const res = await axios.put(`${API}/auth/follow/${targetId}`, {}, { withCredentials: true });
             if (res.data.success) { alert(res.data.isFollowing ? '✅ ติดตามแล้ว!' : '❌ เลิกติดตามแล้ว'); }
         } catch (error) { console.error("Follow error:", error); alert("ไม่สามารถติดตามได้"); }
-        setShowMenu(false); 
+        setShowMenu(false); setShowCommentMenu(null);
     };
+
+    const handleCommentSubmit = (e) => {
+        e.preventDefault();
+        if (!commentText.trim()) return;
+        onComment(post._id, commentText);
+        setCommentText('');
+    };
+
+    // Combine video and images for gallery
+    const mediaItems = [];
+    if (post.video) mediaItems.push({ type: 'video', url: post.video.startsWith('http') ? post.video : `http://localhost:5000${post.video}` });
+    if (post.images?.length > 0) {
+        post.images.forEach(img => {
+            mediaItems.push({ type: 'image', url: img.startsWith('http') ? img : `http://localhost:5000${img}` });
+        });
+    }
+
+    const postDate = new Date(post.createdAt);
+    const dateFormatted = `${postDate.getDate()}/${postDate.getMonth() + 1}/${postDate.getFullYear()}`;
 
     return (
         <div className={`bg-[#12121e] rounded-xl border border-[#2a2a3e] hover:border-[#8b2cf5]/40 transition-all group relative ${showMenu ? 'z-50' : 'z-10'}`}>
             {showMenu && <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />}
-            <div className="flex items-start gap-3 p-4 relative z-20">
+            <div className="flex items-start justify-between gap-3 p-4 relative z-20">
                 <div className="flex items-start gap-3 cursor-pointer" onClick={() => setShowMenu(!showMenu)}>
                     <Avatar name={post.author?.username} src={post.author?.imageProfile} size={10} />
                     <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-white text-sm hover:text-[#8b2cf5] transition-colors">{post.author?.username || 'Unknown'}</span><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}`}>{label}</span><span className="text-xs text-gray-500">{timeAgo(post.createdAt)}</span></div>
+                        <div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-white text-sm hover:text-[#8b2cf5] transition-colors">{post.author?.username || 'Unknown'}</span><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}`}>{label}</span><span className="text-xs text-gray-500">{dateFormatted} • {timeAgo(post.createdAt)}</span></div>
                         {post.tags?.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{post.tags.map((t, i) => (<span key={i} className="text-[10px] text-[#8b2cf5] bg-[#8b2cf5]/10 rounded px-1.5 py-0.5">#{t}</span>))}</div>}
                     </div>
                 </div>
+                {isMe && (
+                    <button onClick={() => onDeletePost(post._id)} className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-all" title="ลบโพสต์">
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                )}
                 {showMenu && (
                     <div className="absolute top-14 left-14 w-48 bg-[#1a1a2e] border border-[#8b2cf5]/50 rounded-xl shadow-2xl z-30 p-1.5 flex flex-col gap-0.5 animate-in zoom-in duration-200">
+                        <div className="px-3 py-2 border-b border-[#2a2a3e] mb-1"><span className="font-bold text-white text-sm truncate block">{post.author?.username || 'Unknown'}</span></div>
                         <button onClick={(e) => { e.stopPropagation(); navigate(`/profile/${post.author._id}`); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2a2a3e] rounded-lg transition-colors"><User className="w-4 h-4" /> ดูโปรไฟล์</button>
                         {!isMe && (
                             <>
@@ -403,9 +546,106 @@ function PostCard({ post, currentUser, liked, onLike }) {
                 )}
             </div>
             <div className="px-4 pb-3"><p className={`text-gray-200 text-sm leading-relaxed ${!expanded && 'line-clamp-4'}`}>{post.content}</p>{post.content?.length > 250 && (<button onClick={() => setExpanded(!expanded)} className="text-[#8b2cf5] text-xs mt-1 hover:underline">{expanded ? 'ย่อลง' : 'อ่านเพิ่มเติม'}</button>)}</div>
-            {post.images?.length > 0 && (<div className={`px-4 pb-3 grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>{post.images.slice(0, 4).map((img, i) => (<div key={i} className="relative rounded-lg overflow-hidden bg-[#1c1c2b] aspect-video"><img src={img} className="w-full h-full object-cover" /></div>))}</div>)}
+            
+            {/* Media Gallery */}
+            {mediaItems.length > 0 && (
+                <div className={`px-4 pb-3 grid gap-2 ${mediaItems.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                    {mediaItems.slice(0, 4).map((item, i) => (
+                        <div key={i} className="relative rounded-lg overflow-hidden bg-[#1c1c2b] aspect-video border border-[#2a2a3e]">
+                            {item.type === 'video' ? (
+                                <video src={item.url} controls className="w-full h-full object-cover" />
+                            ) : (
+                                <img src={item.url} className="w-full h-full object-cover" />
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {post.referencedProduct && (<div className="mx-4 mb-3 flex items-center gap-3 bg-[#1c0d33] border border-[#8b2cf5]/20 rounded-xl p-3"><div className="w-12 h-12 rounded-lg bg-[#2a1a4e] flex items-center justify-center shrink-0">{post.referencedProduct.images?.[0] ? <img src={post.referencedProduct.images[0]} className="w-full h-full object-cover" /> : <Image className="w-5 h-5 text-[#8b2cf5]" />}</div><div><p className="text-xs text-[#8b2cf5] font-semibold mb-0.5">สินค้าที่แนบ</p><p className="text-sm text-white font-medium line-clamp-1">{post.referencedProduct.productName}</p>{post.referencedProduct.price && <p className="text-xs text-gray-400">฿{post.referencedProduct.price.toLocaleString()}</p>}</div></div>)}
-            <div className="flex items-center gap-4 px-4 py-3 border-t border-[#1c1c2b]"><button onClick={onLike} className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-[#8b2cf5]'}`}><Heart className={`w-4 h-4 ${liked ? 'fill-[#8b2cf5]' : ''}`} /><span>{post.likes?.length || 0}</span></button><button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-400"><MessageCircle className="w-4 h-4" /><span>{post.comments?.length || 0}</span></button></div>
+            <div className="flex items-center gap-4 px-4 py-3 border-t border-[#1c1c2b]">
+                <button onClick={onLike} className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-[#8b2cf5]'}`}><Heart className={`w-4 h-4 ${liked ? 'fill-[#8b2cf5]' : ''}`} /><span>{post.likes?.length || 0}</span></button>
+                <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1.5 text-sm transition-colors ${showComments ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-[#8b2cf5]'}`}><MessageCircle className="w-4 h-4" /><span>{post.comments?.length || 0}</span></button>
+                <button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#8b2cf5] ml-2"><Share2 className="w-4 h-4" /></button>
+            </div>
+
+            {/* Comments Section */}
+            {showComments && (
+                <div className="px-4 pb-4 bg-[#0a0a16]/50 rounded-b-xl overflow-visible pt-2 border-t border-[#2a2a3e]">
+                    <div className="flex flex-col gap-3 mb-3 max-h-64 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-[#2a2a3e] scrollbar-track-transparent pr-1">
+                        {post.comments?.length > 0 ? (
+                            post.comments.map(comment => {
+                                const isCommentOwner = String(currentUser?.id || currentUser?._id) === String(comment.user?._id);
+                                const isPostOwner = isMe;
+                                const canDelete = isCommentOwner || isPostOwner;
+                                const isCommentMenuOpen = showCommentMenu === comment._id;
+                                
+                                return (
+                                    <div key={comment._id} className={`flex items-start gap-2.5 p-2 rounded-lg transition group relative ${isCommentMenuOpen ? 'z-40 bg-[#1a1a2e]' : 'z-10 hover:bg-[#1a1a2e]'}`}>
+                                        {isCommentMenuOpen && <div className="fixed inset-0 z-30" onClick={(e) => { e.stopPropagation(); setShowCommentMenu(null); }} />}
+                                        <div className="relative z-40">
+                                            <div onClick={() => setShowCommentMenu(isCommentMenuOpen ? null : comment._id)} className="cursor-pointer">
+                                                <Avatar name={comment.user?.username} src={comment.user?.imageProfile} size={8} />
+                                            </div>
+                                            {isCommentMenuOpen && (
+                                                <div className="absolute top-10 left-0 w-48 bg-[#1a1a2e] border border-[#8b2cf5]/50 rounded-xl shadow-2xl z-50 p-1.5 flex flex-col gap-0.5 animate-in zoom-in duration-200">
+                                                    <div className="px-3 py-2 border-b border-[#2a2a3e] mb-1"><span className="font-bold text-white text-sm truncate block">{comment.user?.username || 'Unknown'}</span></div>
+                                                    <button onClick={(e) => { e.stopPropagation(); navigate(`/profile/${comment.user._id}`); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2a2a3e] rounded-lg transition-colors"><User className="w-4 h-4" /> ดูโปรไฟล์</button>
+                                                    {!isCommentOwner && (
+                                                        <>
+                                                            <button onClick={(e) => handleFollowClick(e, comment.user._id)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2a2a3e] hover:text-[#8b2cf5] rounded-lg transition-colors"><Plus className="w-4 h-4" /> ติดตาม</button>
+                                                            <div className="h-px bg-[#2a2a3e] my-1"></div>
+                                                            <button onClick={(e) => handleChatClick(e, 'GENERAL', comment.user)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2a2a3e] rounded-lg transition-colors"><MessageCircle className="w-4 h-4" /> แชททั่วไป</button>
+                                                            {isTradeRelated && <button onClick={(e) => handleChatClick(e, 'TRADE', comment.user)} className="w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-[#8b2cf5] hover:bg-[#8b2cf5]/15 rounded-lg transition-colors"><PackageOpen className="w-4 h-4" /> แชทเทรด/ซื้อ</button>}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0 relative z-40">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span onClick={() => setShowCommentMenu(isCommentMenuOpen ? null : comment._id)} className="font-semibold text-white text-xs cursor-pointer hover:text-[#8b2cf5] transition-colors">{comment.user?.username || 'Unknown'}</span>
+                                                    <span className="text-[10px] text-gray-600">{timeAgo(comment.createdAt)}</span>
+                                                </div>
+                                                {canDelete && (
+                                                    <button onClick={() => onDeleteComment(post._id, comment._id)} className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 hover:bg-red-500/10 p-1 rounded transition-all">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <p className="text-sm text-gray-300 mt-0.5 break-words">{comment.text}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="text-center text-xs text-gray-500 py-2">ยังไม่มีความคิดเห็น มาเป็นคนแรกสิ!</div>
+                        )}
+                    </div>
+                    
+                    {/* Comment Input Form */}
+                    <form onSubmit={handleCommentSubmit} className="flex gap-2">
+                        <Avatar name={currentUser?.username} src={currentUser?.imageProfile} size={8} />
+                        <div className="flex-1 relative">
+                            <input 
+                                type="text" 
+                                value={commentText}
+                                onChange={e => setCommentText(e.target.value)}
+                                placeholder="แสดงความคิดเห็น..." 
+                                className="w-full bg-[#1c1c2b] border border-[#2a2a3e] rounded-full pl-4 pr-10 py-1.5 text-sm text-white focus:outline-none focus:border-[#8b2cf5] transition-colors"
+                            />
+                            <button 
+                                type="submit" 
+                                disabled={!commentText.trim()}
+                                className="absolute right-1 top-1 bottom-1 p-1 bg-[#8b2cf5] hover:bg-[#7220c7] text-white rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Send className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
         </div>
     );
 }
