@@ -169,7 +169,10 @@ const Profile = () => {
             <div className="z-10 mb-2 flex gap-3 w-full md:w-auto">
               {/* 🟢 แยกปุ่มตามเจ้าของโปรไฟล์ */}
               {isMe ? (
-                <button className="flex-1 md:flex-none px-6 py-2.5 bg-[#151522] border border-[#2a2a3e] rounded-lg text-sm font-medium hover:border-[#8b2cf5] hover:text-[#8b2cf5] transition flex items-center justify-center gap-2">
+                <button 
+                  onClick={() => navigate('/account-settings')}
+                  className="flex-1 md:flex-none px-6 py-2.5 bg-[#151522] border border-[#2a2a3e] rounded-lg text-sm font-medium hover:border-[#8b2cf5] hover:text-[#8b2cf5] transition flex items-center justify-center gap-2"
+                >
                   <Settings className="w-4 h-4" /> ตั้งค่าบัญชี
                 </button>
               ) : (

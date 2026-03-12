@@ -13,6 +13,7 @@ import Cart from './pages/Cart';
 import Community from './pages/Community';
 import Chat from './pages/Chat';
 import Payment from './pages/Payment';
+import AccountSetting from './pages/AccountSetting';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
         <Route path="/chat" element={<Chat />} />
         <Route path="/payment" element={<Payment />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/account-settings" element={<AccountSetting />} />
       </Routes>
     </BrowserRouter>
   );
