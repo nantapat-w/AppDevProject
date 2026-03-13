@@ -3,16 +3,23 @@ import Community from "../models/Community.model.js";
 // 📢 1. สร้างโพสต์ใหม่
 export const createPost = async (req, res) => {
     try {
-        const { content, images, postType, referencedProduct, tags } = req.body;
+        const { content, postType, referencedProduct, tags } = req.body;//ลบ imageออกเพื่อให้backend รับรูปโดยตรง
+        
+        // ดึง URL รูปภาพจาก Cloudinary ที่ Multer จัดการให้
+        let imageUrls = [];
+        if (req.files) {
+            imageUrls = req.files.map(file => file.path); 
+        }
 
         const newPost = await Community.create({
             author: req.user._id,
             content,
-            images: images || [],
+            images: imageUrls,
             postType: postType || "GENERAL",
-            referencedProduct: referencedProduct || null,
-            tags: tags || []
+            referencedProduct: referencedProduct ? JSON.parse(referencedProduct) : null,
+            tags: tags ? JSON.parse(tags) : []
         });
+
 
         res.status(201).json({ success: true, message: "สร้างโพสต์สำเร็จ", data: newPost });
     } catch (error) {

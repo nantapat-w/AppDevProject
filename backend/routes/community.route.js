@@ -1,20 +1,37 @@
 import express from "express";
-import { 
-    createPost, getAllPosts, getPostById, updatePost, 
-    likePost, commentOnPost, deleteComment, deletePost 
+import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+
+import {
+  createPost, getAllPosts, getPostById, updatePost,
+  likePost, commentOnPost, deleteComment, deletePost  // ตรวจสอบชื่อฟังก์ชันใน controller ให้ตรงกัน
 } from "../controllers/community.controller.js";
-// ✅ 1. เปลี่ยนชื่อจาก verifyToken เป็น protectRoute
 import { protectRoute } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-// 🔓 ไม่ต้องล็อกอิน (ส่องฟีดได้)
+// --- ตั้งค่า Cloudinary ---
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "community_posts",
+    allowed_formats: ["jpg", "png", "jpeg", "webp"],
+  },
+});
+const upload = multer({ storage: storage });
+
+// --- Routes ---
 router.get("/", getAllPosts);
 router.get("/:id", getPostById);
 
-// 🔒 ต้องล็อกอิน (ถึงจะตั้งกระทู้ ไลค์ คอมเมนต์ได้)
-// ✅ 2. เปลี่ยน verifyToken เป็น protectRoute ให้หมดเลยครับ
-router.post("/", protectRoute, createPost);
+router.post("/", protectRoute, upload.array("images", 4), createPost); // ใช้ upload ตรงนี้
 router.put("/:id", protectRoute, updatePost);
 router.delete("/:id", protectRoute, deletePost);
 

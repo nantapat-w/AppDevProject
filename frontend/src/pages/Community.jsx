@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+import logo from '../assets/logo0.png';
 
 // ---------- utils ----------
 const API = 'http://localhost:5000/api';
@@ -58,7 +59,7 @@ const Community = () => {
     const [showDropdown, setShowDropdown] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [likedPosts, setLikedPosts] = useState(new Set());
-    const [friends, setFriends] = useState([]); 
+    const [friends, setFriends] = useState([]);
 
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -110,8 +111,8 @@ const Community = () => {
         }
     };
 
-    useEffect(() => { 
-        fetchPosts(); 
+    useEffect(() => {
+        fetchPosts();
         fetchFriends();
         fetchNotifications();
     }, [activeFilter]);
@@ -123,12 +124,12 @@ const Community = () => {
 
     const handleToggleNotifications = async () => {
         setShowNotifications(!showNotifications);
-        setShowDropdown(false); 
+        setShowDropdown(false);
         if (!showNotifications && unreadCount > 0) {
             try {
                 await axios.put(`${API}/notifications/mark-read`, {}, { withCredentials: true });
-                setUnreadCount(0); 
-                setNotifications(prev => prev.map(n => ({ ...n, isRead: true }))); 
+                setUnreadCount(0);
+                setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             } catch (error) {
                 console.error("Mark as read error:", error);
             }
@@ -147,7 +148,7 @@ const Community = () => {
             setPosts(prev => prev.map(p => {
                 if (p._id !== postId) return p;
                 const liked = likedPosts.has(postId);
-                return { ...p, likes: liked ? p.likes.slice(0, -1) : [...p.likes, currentUser.id] }; 
+                return { ...p, likes: liked ? p.likes.slice(0, -1) : [...p.likes, currentUser.id] };
             }));
         } catch (err) {
             console.error('like error', err);
@@ -221,7 +222,7 @@ const Community = () => {
             const formData = new FormData();
             formData.append('content', form.content);
             formData.append('postType', form.postType);
-            
+
             const tagsArray = form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
             formData.append('tags', JSON.stringify(tagsArray));
 
@@ -233,7 +234,7 @@ const Community = () => {
                 formData.append('video', video);
             }
 
-            const res = await axios.post(`${API}/community`, formData, { 
+            const res = await axios.post(`${API}/community`, formData, {
                 withCredentials: true,
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
@@ -270,8 +271,9 @@ const Community = () => {
                     <Link to="/" className="flex items-center gap-2 cursor-pointer w-48 shrink-0">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#8b2cf5] to-[#4361ee] flex items-center justify-center shadow-[0_0_15px_rgba(139,44,245,0.4)]">
                             <Repeat className="text-white w-6 h-6" />
+                            <img src={logo} alt="TradeApp Logo" className="w-full h-full object-cover" />
                         </div>
-                        <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">TradeApp</span>
+                        <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">Shoplify</span>
                     </Link>
 
                     <form onSubmit={handleSearch} className="flex-1 max-w-3xl relative">
@@ -281,7 +283,7 @@ const Community = () => {
 
                     <div className="flex items-center gap-5 w-auto justify-end">
                         <Link to="/shops" className="hidden md:flex items-center gap-2 text-gray-300 hover:text-[#8b2cf5] font-medium transition-colors mr-2"><Store className="w-5 h-5" /> ร้านค้า</Link>
-                        
+
                         <div className="relative">
                             <div className="relative cursor-pointer hover:text-[#8b2cf5] transition" onClick={handleToggleNotifications}>
                                 <Bell className="w-6 h-6 text-gray-300" />
@@ -361,8 +363,8 @@ const Community = () => {
                         <div className="flex flex-col gap-3">
                             {friends.length > 0 ? (
                                 friends.map(f => (
-                                    <div 
-                                        key={f._id} 
+                                    <div
+                                        key={f._id}
                                         onClick={() => {
                                             // 🟢 จิ้มที่ชื่อเพื่อนปุ๊บ วาร์ปไปคุยแชทกับเพื่อนคนนี้ปั๊บ!
                                             navigate('/chat', {
@@ -372,7 +374,7 @@ const Community = () => {
                                                     chatType: 'GENERAL'
                                                 }
                                             });
-                                        }} 
+                                        }}
                                         className="flex items-center gap-3 cursor-pointer group hover:bg-[#1c1c2b] rounded-lg p-2 transition-colors -mx-2"
                                     >
                                         <div className="relative">
@@ -385,7 +387,7 @@ const Community = () => {
                             ) : (<div className="text-center py-6 border border-dashed border-[#2a2a3e] rounded-lg"><p className="text-sm text-gray-400">ยังไม่มีเพื่อน</p><p className="text-[10px] text-gray-500 mt-1">ต้องติดตามกันและกันก่อนนะ!</p></div>)}
                         </div>
                         <div className="mt-4 pt-4 border-t border-[#2a2a3e]">
-                            <button 
+                            <button
                                 onClick={() => {
                                     // 🟢 ถ้ามีเพื่อน ให้เปิดแชทกับคนแรกในลิสต์ทันที
                                     if (friends.length > 0) {
@@ -420,7 +422,7 @@ const Community = () => {
                             <div>
                                 <textarea rows={4} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="เขียนอะไรก็ได้ที่อยากแชร์กับชุมชน..." className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#8b2cf5] resize-none transition-colors" />
                             </div>
-                            
+
                             {/* Media Preview Area */}
                             {(images.length > 0 || video) && (
                                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#2a2a3e] scrollbar-track-transparent">
@@ -469,11 +471,29 @@ const Community = () => {
 // ═══════════════ POST CARD ═══════════════
 function PostCard({ post, currentUser, liked, onLike, onComment, onDeleteComment, onDeletePost }) {
     const [expanded, setExpanded] = useState(false);
-    const [showMenu, setShowMenu] = useState(false); 
-    const [showCommentMenu, setShowCommentMenu] = useState(null); 
-    const [showComments, setShowComments] = useState(false); 
+    const [showMenu, setShowMenu] = useState(false);
+    const [showCommentMenu, setShowCommentMenu] = useState(null);
+    const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
+    useEffect(() => {
+        // ฟังก์ชันสำหรับปิดเมนูทั้งหมด
+        const closeAllDropdowns = () => {
+            setShowMenu(false);
+            setShowCommentMenu(null);
+        };
+
+        // ดักการคลิกที่ว่างทั่วทั้งหน้าเว็บ (แก้ปัญหาที่ 2)
+        document.addEventListener('click', closeAllDropdowns);
+
+        // ดัก Event พิเศษ เผื่อกรณีเราไปกดเปิดเมนูของโพสต์อื่น (แก้ปัญหาที่ 1 แบบข้ามโพสต์)
+        document.addEventListener('closeCustomDropdowns', closeAllDropdowns);
+
+        return () => {
+            document.removeEventListener('click', closeAllDropdowns);
+            document.removeEventListener('closeCustomDropdowns', closeAllDropdowns);
+        };
+    }, []);
     const badgeClass = TYPE_BADGE_COLORS[post.postType] || TYPE_BADGE_COLORS.GENERAL;
     const label = POST_TYPE_LABELS[post.postType]?.label || post.postType;
     const isMe = String(currentUser?.id || currentUser?._id) === String(post.author?._id);
@@ -486,7 +506,7 @@ function PostCard({ post, currentUser, liked, onLike, onComment, onDeleteComment
     };
 
     const handleFollowClick = async (e, overrideUserId) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         const targetId = overrideUserId || post.author._id;
         try {
             const res = await axios.put(`${API}/auth/follow/${targetId}`, {}, { withCredentials: true });
@@ -515,10 +535,14 @@ function PostCard({ post, currentUser, liked, onLike, onComment, onDeleteComment
     const dateFormatted = `${postDate.getDate()}/${postDate.getMonth() + 1}/${postDate.getFullYear()}`;
 
     return (
-        <div className={`bg-[#12121e] rounded-xl border border-[#2a2a3e] hover:border-[#8b2cf5]/40 transition-all group relative ${showMenu ? 'z-50' : 'z-10'}`}>
-            {showMenu && <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />}
+        <div className={`bg-[#12121e] rounded-xl border border-[#2a2a3e] hover:border-[#8b2cf5]/40 transition-all group relative ${(showMenu || showCommentMenu !== null) ? 'z-[60]' : 'z-10'}`}>
             <div className="flex items-start justify-between gap-3 p-4 relative z-20">
-                <div className="flex items-start gap-3 cursor-pointer" onClick={() => setShowMenu(!showMenu)}>
+                <div className="flex items-start gap-3 cursor-pointer" onClick={(e) => {
+                    e.stopPropagation(); // กันไม่ให้คลิกนี้ทะลุไปลั่น document.addEventListener
+                    document.dispatchEvent(new Event('closeCustomDropdowns')); // สั่งปิดเมนูอื่นๆ ทั้งแอป
+                    setShowMenu(!showMenu); // สลับสถานะเมนูตัวเอง
+                    setShowCommentMenu(null); // ปิดเมนูคอมเมนต์ในโพสต์เดียวกัน (เผื่อเปิดค้างไว้)
+                }}>
                     <Avatar name={post.author?.username} src={post.author?.imageProfile} size={10} />
                     <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-white text-sm hover:text-[#8b2cf5] transition-colors">{post.author?.username || 'Unknown'}</span><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}`}>{label}</span><span className="text-xs text-gray-500">{dateFormatted} • {timeAgo(post.createdAt)}</span></div>
@@ -531,7 +555,7 @@ function PostCard({ post, currentUser, liked, onLike, onComment, onDeleteComment
                     </button>
                 )}
                 {showMenu && (
-                    <div className="absolute top-14 left-14 w-48 bg-[#1a1a2e] border border-[#8b2cf5]/50 rounded-xl shadow-2xl z-30 p-1.5 flex flex-col gap-0.5 animate-in zoom-in duration-200">
+                    <div className="absolute top-14 left-14 w-48 bg-[#1a1a2e] border border-[#8b2cf5]/50 rounded-xl shadow-2xl z-30 p-1.5 flex flex-col gap-0.5 animate-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
                         <div className="px-3 py-2 border-b border-[#2a2a3e] mb-1"><span className="font-bold text-white text-sm truncate block">{post.author?.username || 'Unknown'}</span></div>
                         <button onClick={(e) => { e.stopPropagation(); navigate(`/profile/${post.author._id}`); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2a2a3e] rounded-lg transition-colors"><User className="w-4 h-4" /> ดูโปรไฟล์</button>
                         {!isMe && (
@@ -546,7 +570,7 @@ function PostCard({ post, currentUser, liked, onLike, onComment, onDeleteComment
                 )}
             </div>
             <div className="px-4 pb-3"><p className={`text-gray-200 text-sm leading-relaxed ${!expanded && 'line-clamp-4'}`}>{post.content}</p>{post.content?.length > 250 && (<button onClick={() => setExpanded(!expanded)} className="text-[#8b2cf5] text-xs mt-1 hover:underline">{expanded ? 'ย่อลง' : 'อ่านเพิ่มเติม'}</button>)}</div>
-            
+
             {/* Media Gallery */}
             {mediaItems.length > 0 && (
                 <div className={`px-4 pb-3 grid gap-2 ${mediaItems.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
@@ -564,52 +588,125 @@ function PostCard({ post, currentUser, liked, onLike, onComment, onDeleteComment
 
             {post.referencedProduct && (<div className="mx-4 mb-3 flex items-center gap-3 bg-[#1c0d33] border border-[#8b2cf5]/20 rounded-xl p-3"><div className="w-12 h-12 rounded-lg bg-[#2a1a4e] flex items-center justify-center shrink-0">{post.referencedProduct.images?.[0] ? <img src={post.referencedProduct.images[0]} className="w-full h-full object-cover" /> : <Image className="w-5 h-5 text-[#8b2cf5]" />}</div><div><p className="text-xs text-[#8b2cf5] font-semibold mb-0.5">สินค้าที่แนบ</p><p className="text-sm text-white font-medium line-clamp-1">{post.referencedProduct.productName}</p>{post.referencedProduct.price && <p className="text-xs text-gray-400">฿{post.referencedProduct.price.toLocaleString()}</p>}</div></div>)}
             <div className="flex items-center gap-4 px-4 py-3 border-t border-[#1c1c2b]">
-                <button onClick={onLike} className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-[#8b2cf5]'}`}><Heart className={`w-4 h-4 ${liked ? 'fill-[#8b2cf5]' : ''}`} /><span>{post.likes?.length || 0}</span></button>
-                <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1.5 text-sm transition-colors ${showComments ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-[#8b2cf5]'}`}><MessageCircle className="w-4 h-4" /><span>{post.comments?.length || 0}</span></button>
-                <button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#8b2cf5] ml-2"><Share2 className="w-4 h-4" /></button>
+                {/* ปุ่ม Like */}
+                <button
+                    onClick={onLike}
+                    className={`flex items-center gap-1.5 text-sm transition-all duration-200 cursor-pointer hover:scale-110 ${liked ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-[#8b2cf5]'}`}
+                >
+                    <Heart className={`w-4 h-4 ${liked ? 'fill-[#8b2cf5]' : ''}`} />
+                    <span>{post.likes?.length || 0}</span>
+                </button>
+                {/* ปุ่ม Comment */}
+                <button
+                    onClick={() => setShowComments(!showComments)}
+                    className={`flex items-center gap-1.5 text-sm transition-all duration-200 cursor-pointer hover:scale-110 ${showComments ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-[#8b2cf5]'}`}
+                >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>{post.comments?.length || 0}</span>
+                </button>
+                {/* ปุ่ม Share */}
+                <button className="flex items-center gap-1.5 text-sm text-gray-500 transition-all duration-200 cursor-pointer hover:scale-110 hover:text-[#8b2cf5] ml-2">
+                    <Share2 className="w-4 h-4" />
+                </button>
             </div>
 
             {/* Comments Section */}
             {showComments && (
-                <div className="px-4 pb-4 bg-[#0a0a16]/50 rounded-b-xl overflow-visible pt-2 border-t border-[#2a2a3e]">
-                    <div className="flex flex-col gap-3 mb-3 max-h-64 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-[#2a2a3e] scrollbar-track-transparent pr-1">
-                        {post.comments?.length > 0 ? (
-                            post.comments.map(comment => {
+                <div className="px-4 pb-4 border-t border-[#1c1c2b] pt-3 bg-[#12121e]">
+
+                    {/* รายการคอมเมนต์ที่มีอยู่ */}
+                    {post.comments?.length > 0 ? (
+                        <div className="flex flex-col gap-3">
+                            {post.comments.map(comment => {
                                 const isCommentOwner = String(currentUser?.id || currentUser?._id) === String(comment.user?._id);
                                 const isPostOwner = isMe;
                                 const canDelete = isCommentOwner || isPostOwner;
                                 const isCommentMenuOpen = showCommentMenu === comment._id;
-                                
+
                                 return (
-                                    <div key={comment._id} className={`flex items-start gap-2.5 p-2 rounded-lg transition group relative ${isCommentMenuOpen ? 'z-40 bg-[#1a1a2e]' : 'z-10 hover:bg-[#1a1a2e]'}`}>
-                                        {isCommentMenuOpen && <div className="fixed inset-0 z-30" onClick={(e) => { e.stopPropagation(); setShowCommentMenu(null); }} />}
-                                        <div className="relative z-40">
-                                            <div onClick={() => setShowCommentMenu(isCommentMenuOpen ? null : comment._id)} className="cursor-pointer">
+                                    <div key={comment._id} className={`flex items-start gap-2.5 p-2 rounded-lg transition group relative ${isCommentMenuOpen ? 'z-[100] bg-[#1a1a2e]' : 'z-10 hover:bg-[#1a1a2e]'}`}>
+
+                                        {/* Avatar และ Dropdown เมนูของคอมเมนต์ */}
+                                        <div className="relative z-[120]">
+                                            <div onClick={(e) => {
+                                                e.stopPropagation();
+                                                document.dispatchEvent(new Event('closeCustomDropdowns'));
+                                                setShowCommentMenu(isCommentMenuOpen ? null : comment._id);
+                                                setShowMenu(false); // ปิดเมนูหลักของโพสต์
+                                            }} className="cursor-pointer">
                                                 <Avatar name={comment.user?.username} src={comment.user?.imageProfile} size={8} />
                                             </div>
+
+                                            {/* 🛠️ Dropdown เมนูโปรไฟล์ */}
                                             {isCommentMenuOpen && (
-                                                <div className="absolute top-10 left-0 w-48 bg-[#1a1a2e] border border-[#8b2cf5]/50 rounded-xl shadow-2xl z-50 p-1.5 flex flex-col gap-0.5 animate-in zoom-in duration-200">
-                                                    <div className="px-3 py-2 border-b border-[#2a2a3e] mb-1"><span className="font-bold text-white text-sm truncate block">{comment.user?.username || 'Unknown'}</span></div>
-                                                    <button onClick={(e) => { e.stopPropagation(); navigate(`/profile/${comment.user._id}`); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2a2a3e] rounded-lg transition-colors"><User className="w-4 h-4" /> ดูโปรไฟล์</button>
+                                                <div
+                                                    className="absolute top-10 left-0 w-48 bg-[#1a1a2e] border border-[#8b2cf5]/50 rounded-xl shadow-2xl z-[999] p-1.5 flex flex-col gap-0.5 animate-in zoom-in duration-200"
+                                                    style={{ position: 'absolute' }} onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <div className="px-3 py-2 border-b border-[#2a2a3e] mb-1">
+                                                        <span className="font-bold text-white text-sm truncate block">
+                                                            {comment.user?.username || 'Unknown'}
+                                                        </span>
+                                                    </div>
+
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); navigate(`/profile/${comment.user._id}`); }}
+                                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2a2a3e] rounded-lg transition-colors"
+                                                    >
+                                                        <User className="w-4 h-4" /> ดูโปรไฟล์
+                                                    </button>
+
                                                     {!isCommentOwner && (
                                                         <>
-                                                            <button onClick={(e) => handleFollowClick(e, comment.user._id)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2a2a3e] hover:text-[#8b2cf5] rounded-lg transition-colors"><Plus className="w-4 h-4" /> ติดตาม</button>
+                                                            <button
+                                                                onClick={(e) => handleFollowClick(e, comment.user._id)}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2a2a3e] hover:text-[#8b2cf5] rounded-lg transition-colors"
+                                                            >
+                                                                <Plus className="w-4 h-4" /> ติดตาม
+                                                            </button>
                                                             <div className="h-px bg-[#2a2a3e] my-1"></div>
-                                                            <button onClick={(e) => handleChatClick(e, 'GENERAL', comment.user)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2a2a3e] rounded-lg transition-colors"><MessageCircle className="w-4 h-4" /> แชททั่วไป</button>
-                                                            {isTradeRelated && <button onClick={(e) => handleChatClick(e, 'TRADE', comment.user)} className="w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-[#8b2cf5] hover:bg-[#8b2cf5]/15 rounded-lg transition-colors"><PackageOpen className="w-4 h-4" /> แชทเทรด/ซื้อ</button>}
+                                                            <button
+                                                                onClick={(e) => handleChatClick(e, 'GENERAL', comment.user)}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2a2a3e] rounded-lg transition-colors"
+                                                            >
+                                                                <MessageCircle className="w-4 h-4" /> แชททั่วไป
+                                                            </button>
+                                                            {isTradeRelated && (
+                                                                <button
+                                                                    onClick={(e) => handleChatClick(e, 'TRADE', comment.user)}
+                                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-[#8b2cf5] hover:bg-[#8b2cf5]/15 rounded-lg transition-colors"
+                                                                >
+                                                                    <PackageOpen className="w-4 h-4" /> แชทเทรด/ซื้อ
+                                                                </button>
+                                                            )}
                                                         </>
                                                     )}
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* เนื้อหาของคอมเมนต์ */}
                                         <div className="flex-1 min-w-0 relative z-40">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <span onClick={() => setShowCommentMenu(isCommentMenuOpen ? null : comment._id)} className="font-semibold text-white text-xs cursor-pointer hover:text-[#8b2cf5] transition-colors">{comment.user?.username || 'Unknown'}</span>
+                                                    <span
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            document.dispatchEvent(new Event('closeCustomDropdowns'));
+                                                            setShowCommentMenu(isCommentMenuOpen ? null : comment._id);
+                                                            setShowMenu(false);
+                                                        }}
+                                                        className="font-semibold text-white text-xs cursor-pointer hover:text-[#8b2cf5] transition-colors"
+                                                    >
+                                                        {comment.user?.username || 'Unknown'}
+                                                    </span>
                                                     <span className="text-[10px] text-gray-600">{timeAgo(comment.createdAt)}</span>
                                                 </div>
                                                 {canDelete && (
-                                                    <button onClick={() => onDeleteComment(post._id, comment._id)} className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 hover:bg-red-500/10 p-1 rounded transition-all">
+                                                    <button
+                                                        onClick={() => onDeleteComment(post._id, comment._id)}
+                                                        className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 hover:bg-red-500/10 p-1 rounded transition-all"
+                                                    >
                                                         <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
                                                 )}
@@ -618,31 +715,31 @@ function PostCard({ post, currentUser, liked, onLike, onComment, onDeleteComment
                                         </div>
                                     </div>
                                 );
-                            })
-                        ) : (
-                            <div className="text-center text-xs text-gray-500 py-2">ยังไม่มีความคิดเห็น มาเป็นคนแรกสิ!</div>
-                        )}
-                    </div>
-                    
-                    {/* Comment Input Form */}
-                    <form onSubmit={handleCommentSubmit} className="flex gap-2">
-                        <Avatar name={currentUser?.username} src={currentUser?.imageProfile} size={8} />
-                        <div className="flex-1 relative">
-                            <input 
-                                type="text" 
-                                value={commentText}
-                                onChange={e => setCommentText(e.target.value)}
-                                placeholder="แสดงความคิดเห็น..." 
-                                className="w-full bg-[#1c1c2b] border border-[#2a2a3e] rounded-full pl-4 pr-10 py-1.5 text-sm text-white focus:outline-none focus:border-[#8b2cf5] transition-colors"
-                            />
-                            <button 
-                                type="submit" 
-                                disabled={!commentText.trim()}
-                                className="absolute right-1 top-1 bottom-1 p-1 bg-[#8b2cf5] hover:bg-[#7220c7] text-white rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Send className="w-3.5 h-3.5" />
-                            </button>
+                            })}
                         </div>
+                    ) : (
+                        <div className="text-center text-xs text-gray-500 py-2 border-b border-[#1c1c2b] mb-2">
+                            ยังไม่มีความคิดเห็น มาเป็นคนแรกสิ!
+                        </div>
+                    )}
+
+                    {/* ✨ ฟอร์มสำหรับพิมพ์ตอบกลับคอมเมนต์ ✨ */}
+                    <form onSubmit={handleCommentSubmit} className="mt-3 flex items-center gap-3">
+                        <Avatar name={currentUser?.username} src={currentUser?.imageProfile} size={8} />
+                        <input
+                            type="text"
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            placeholder="เขียนความคิดเห็น..."
+                            className="flex-1 bg-[#1a1a2e] border border-[#2a2a3e] rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-[#8b2cf5] transition-colors"
+                        />
+                        <button
+                            type="submit"
+                            disabled={!commentText.trim()}
+                            className="w-9 h-9 flex items-center justify-center rounded-full bg-[#8b2cf5] text-white hover:bg-[#7220c7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        >
+                            <Send className="w-4 h-4 -ml-0.5" />
+                        </button>
                     </form>
                 </div>
             )}
@@ -650,12 +747,12 @@ function PostCard({ post, currentUser, liked, onLike, onComment, onDeleteComment
     );
 }
 
-export { 
-    PostCard, 
-    Avatar, 
-    timeAgo, 
-    POST_TYPE_LABELS, 
-    TYPE_BADGE_COLORS 
+export {
+    PostCard,
+    Avatar,
+    timeAgo,
+    POST_TYPE_LABELS,
+    TYPE_BADGE_COLORS
 };
 
 export default Community;

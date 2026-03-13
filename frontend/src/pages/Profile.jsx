@@ -2,18 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, User, Star, Package, ShieldCheck, MapPin, Settings, Edit3, Clock, Repeat, Users, MessageCircle, Plus, Check, MessageSquare } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { axiosInstance } from '../utils/axios';
-import { PostCard } from './Community';
+import { PostCard, POST_TYPE_LABELS } from './Community';
 
 const Profile = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // 🟢 รับ ID จาก URL (ถ้ามีแปลว่ากำลังดูโปรไฟล์คนอื่น)
-  const [activeTab, setActiveTab] = useState('items'); 
-
+  const [activeTab, setActiveTab] = useState('items');
+  const [postFilter, setPostFilter] = useState('ALL'); // เพิ่ม state สำหรับเก็บ filter
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [userPosts, setUserPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
+
 
   // ดึงข้อมูลตัวเองจาก LocalStorage ไว้เทียบว่าใช่โปรไฟล์เราไหม
   let currentUser = null;
@@ -25,29 +26,21 @@ const Profile = () => {
   }
   const myId = currentUser?._id || currentUser?.id;
 
+  // --- ส่วนที่ 1: ดึงข้อมูลโปรไฟล์ (รันครั้งเดียวเมื่อเข้าหน้า หรือเปลี่ยน ID) ---
   useEffect(() => {
-    // กำหนดว่าเป้าหมายที่จะดูคือ ID จาก URL (เพื่อน) หรือ ID ของตัวเอง
     const targetId = id || myId;
-
     if (!targetId) {
       navigate('/login');
       return;
     }
 
     const fetchProfile = async () => {
-      setLoading(true);
+      setLoading(true); // ตัวนี้คุม Loading ทั้งหน้า (เฉพาะตอนเข้าหน้าแรก)
       try {
-        // 🟢 ยิง API ไปดึงข้อมูลโปรไฟล์ (ใช้ route จาก backend นายน้อย)
         const res = await axiosInstance.get(`http://localhost:5000/api/auth/profile/${targetId}`);
         if (res.data.success) {
           setProfileData(res.data.data);
-          
-          // เช็คว่าเรากดติดตามคนนี้ไปแล้วหรือยัง
-          if (res.data.data.followers?.includes(myId)) {
-            setIsFollowing(true);
-          } else {
-            setIsFollowing(false);
-          }
+          setIsFollowing(res.data.data.followers?.includes(myId));
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -58,24 +51,36 @@ const Profile = () => {
       }
     };
 
+    fetchProfile();
+  }, [id, myId, navigate]); // <--- สังเกตว่าไม่มี postFilter ตรงนี้ หน้าจะได้ไม่รีใหม่
+
+  // --- ส่วนที่ 2: ดึงโพสต์ (รันทุกครั้งที่กดปุ่ม Filter) ---
+  useEffect(() => {
+    const targetId = id || myId;
+    if (!targetId) return;
+
     const fetchUserPosts = async () => {
-        setLoadingPosts(true);
-        try {
-            const res = await axiosInstance.get(`/community?userId=${targetId}`);
-            if (res.data.success) {
-                const filteredPosts = res.data.data.filter(post => String(post.author?._id || post.author) === String(targetId));
-                setUserPosts(filteredPosts);
-            }
-        } catch (error) {
-            console.error("Error fetching user posts:", error);
-        } finally {
-            setLoadingPosts(false);
+      setLoadingPosts(true); // ตัวนี้คุม Loading เฉพาะในบล็อก "โพสต์" เท่านั้น
+      try {
+        const params = { userId: targetId };
+        if (postFilter !== 'ALL') params.postType = postFilter;
+
+        const res = await axiosInstance.get(`/community`, { params });
+        if (res.data.success) {
+          const filteredPosts = res.data.data.filter(post =>
+            String(post.author?._id || post.author) === String(targetId)
+          );
+          setUserPosts(filteredPosts);
         }
+      } catch (error) {
+        console.error("Error fetching user posts:", error);
+      } finally {
+        setLoadingPosts(false);
+      }
     };
 
-    fetchProfile();
-    fetchUserPosts(); // เรียกใช้ฟังก์ชันดึงโพสต์ของผู้ใช้
-  }, [id, myId, navigate]);
+    fetchUserPosts();
+  }, [id, myId, postFilter]); // <--- ตัวนี้จะทำงานเฉพาะเวลาเปลี่ยน Filter
 
   // ตรวจสอบว่านี่คือโปรไฟล์ของเราเองหรือไม่
   const isMe = String(profileData?._id) === String(myId);
@@ -84,58 +89,58 @@ const Profile = () => {
   const handleFollowToggle = async () => {
     if (!currentUser) return navigate('/login');
     try {
-        const res = await axios.put(`http://localhost:5000/api/auth/follow/${profileData._id}`, {}, { withCredentials: true });
-        if (res.data.success) {
-            setIsFollowing(res.data.isFollowing);
-            // อัปเดตตัวเลขผู้ติดตามแบบ Real-time บนหน้าจอ
-            setProfileData(prev => ({
-                ...prev,
-                followers: res.data.isFollowing 
-                    ? [...(prev.followers || []), myId] 
-                    : (prev.followers || []).filter(followerId => String(followerId) !== String(myId))
-            }));
-        }
+      const res = await axios.put(`http://localhost:5000/api/auth/follow/${profileData._id}`, {}, { withCredentials: true });
+      if (res.data.success) {
+        setIsFollowing(res.data.isFollowing);
+        // อัปเดตตัวเลขผู้ติดตามแบบ Real-time บนหน้าจอ
+        setProfileData(prev => ({
+          ...prev,
+          followers: res.data.isFollowing
+            ? [...(prev.followers || []), myId]
+            : (prev.followers || []).filter(followerId => String(followerId) !== String(myId))
+        }));
+      }
     } catch (error) {
-        console.error("Follow error:", error);
+      console.error("Follow error:", error);
     }
   };
 
   // 🟢 ฟังก์ชันทักแชท (ในหน้า Profile)
   const handleChat = () => {
-      navigate('/chat', {
-          state: {
-              receiverId: profileData._id,
-              receiverName: profileData.username,
-              chatType: 'GENERAL'
-          }
-      });
+    navigate('/chat', {
+      state: {
+        receiverId: profileData._id,
+        receiverName: profileData.username,
+        chatType: 'GENERAL'
+      }
+    });
   };
   const handleLikePost = async (postId) => {
-      if (!currentUser) return navigate('/login');
-      try {
-          await axiosInstance.put(`/community/${postId}/like`);
-          setUserPosts(prev => prev.map(p => {
-              if (p._id !== postId) return p;
-              const hasLiked = p.likes.includes(currentUser.id || currentUser._id);
-              return { 
-                  ...p, 
-                  likes: hasLiked 
-                    ? p.likes.filter(uid => String(uid) !== String(currentUser.id || currentUser._id)) 
-                    : [...p.likes, (currentUser.id || currentUser._id)] 
-              };
-          }));
-      } catch (err) { console.error(err); }
+    if (!currentUser) return navigate('/login');
+    try {
+      await axiosInstance.put(`/community/${postId}/like`);
+      setUserPosts(prev => prev.map(p => {
+        if (p._id !== postId) return p;
+        const hasLiked = p.likes.includes(currentUser.id || currentUser._id);
+        return {
+          ...p,
+          likes: hasLiked
+            ? p.likes.filter(uid => String(uid) !== String(currentUser.id || currentUser._id))
+            : [...p.likes, (currentUser.id || currentUser._id)]
+        };
+      }));
+    } catch (err) { console.error(err); }
   };
 
   if (loading) {
-      return <div className="min-h-screen bg-[#05050f] flex items-center justify-center text-white"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-[#8b2cf5]"></div></div>;
+    return <div className="min-h-screen bg-[#05050f] flex items-center justify-center text-white"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-[#8b2cf5]"></div></div>;
   }
 
   if (!profileData) return null;
 
   return (
     <div className="min-h-screen bg-[#05050f] text-white font-sans pb-10">
-      
+
       {/* 1. Navbar */}
       <nav className="bg-[#0a0a16] border-b border-[#2a2a3e] px-4 py-3 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -153,15 +158,15 @@ const Profile = () => {
       </nav>
 
       <div className="max-w-5xl mx-auto px-4 mt-8">
-        
+
         {/* 2. Profile Header */}
         <div className="bg-[#12121e] border border-[#2a2a3e] rounded-2xl overflow-hidden relative shadow-lg">
           <div className="h-32 md:h-48 bg-gradient-to-r from-[#2a1b41] to-[#162142] relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-64 h-64 bg-[#8b2cf5] opacity-20 blur-[80px] rounded-full"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#8b2cf5] opacity-20 blur-[80px] rounded-full"></div>
           </div>
 
           <div className="px-6 pb-6 relative flex flex-col md:flex-row gap-6 md:items-end -mt-12 md:-mt-16">
-            
+
             <div className="relative z-10 shrink-0">
               <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-[#0a0a16] border-4 border-[#12121e] flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(139,44,245,0.3)]">
                 {profileData.imageProfile ? (
@@ -191,12 +196,12 @@ const Profile = () => {
               {/* 🟢 โซนผู้ติดตาม อัปเดตแบบเรียลไทม์ */}
               <div className="flex items-center gap-6 text-sm">
                 <div className="flex items-center gap-1.5 cursor-pointer group">
-                   <span className="font-bold text-white group-hover:text-[#8b2cf5] transition">{profileData.followers?.length || 0}</span>
-                   <span className="text-gray-400 group-hover:text-gray-300 transition">ผู้ติดตาม</span>
+                  <span className="font-bold text-white group-hover:text-[#8b2cf5] transition">{profileData.followers?.length || 0}</span>
+                  <span className="text-gray-400 group-hover:text-gray-300 transition">ผู้ติดตาม</span>
                 </div>
                 <div className="flex items-center gap-1.5 cursor-pointer group">
-                   <span className="font-bold text-white group-hover:text-[#8b2cf5] transition">{profileData.following?.length || 0}</span>
-                   <span className="text-gray-400 group-hover:text-gray-300 transition">กำลังติดตาม</span>
+                  <span className="font-bold text-white group-hover:text-[#8b2cf5] transition">{profileData.following?.length || 0}</span>
+                  <span className="text-gray-400 group-hover:text-gray-300 transition">กำลังติดตาม</span>
                 </div>
               </div>
             </div>
@@ -204,7 +209,7 @@ const Profile = () => {
             <div className="z-10 mb-2 flex gap-3 w-full md:w-auto">
               {/* 🟢 แยกปุ่มตามเจ้าของโปรไฟล์ */}
               {isMe ? (
-                <button 
+                <button
                   onClick={() => navigate('/account-settings')}
                   className="flex-1 md:flex-none px-6 py-2.5 bg-[#151522] border border-[#2a2a3e] rounded-lg text-sm font-medium hover:border-[#8b2cf5] hover:text-[#8b2cf5] transition flex items-center justify-center gap-2"
                 >
@@ -212,19 +217,18 @@ const Profile = () => {
                 </button>
               ) : (
                 <>
-                  <button 
+                  <button
                     onClick={handleChat}
                     className="flex-1 md:flex-none px-6 py-2.5 bg-[#151522] border border-[#2a2a3e] text-white rounded-lg text-sm font-medium hover:border-[#4361ee] hover:text-[#4361ee] transition flex items-center justify-center gap-2"
                   >
                     <MessageCircle className="w-4 h-4" /> ทักแชท
                   </button>
-                  <button 
+                  <button
                     onClick={handleFollowToggle}
-                    className={`flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2 ${
-                        isFollowing 
-                        ? 'bg-[#2a2a3e] text-gray-300 border border-[#2a2a3e] hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50' 
-                        : 'bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] text-white shadow-[0_0_15px_rgba(139,44,245,0.4)] hover:opacity-90'
-                    }`}
+                    className={`flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2 ${isFollowing
+                      ? 'bg-[#2a2a3e] text-gray-300 border border-[#2a2a3e] hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50'
+                      : 'bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] text-white shadow-[0_0_15px_rgba(139,44,245,0.4)] hover:opacity-90'
+                      }`}
                   >
                     {isFollowing ? <><Check className="w-4 h-4" /> กำลังติดตาม</> : <><Plus className="w-4 h-4" /> ติดตาม</>}
                   </button>
@@ -256,14 +260,14 @@ const Profile = () => {
         {/* 3. เนื้อหาด้านล่าง */}
         <div className="mt-8">
           <div className="flex items-center gap-6 border-b border-[#2a2a3e] mb-6">
-            <button 
+            <button
               onClick={() => setActiveTab('items')}
               className={`pb-3 text-sm font-bold transition-all relative ${activeTab === 'items' ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-gray-300'}`}
             >
               <div className="flex items-center gap-2"><Package className="w-4 h-4" /> คลังสินค้า</div>
               {activeTab === 'items' && <div className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]"></div>}
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('posts')}
               className={`pb-3 text-sm font-bold transition-all relative ${activeTab === 'posts' ? 'text-[#4361ee]' : 'text-gray-500 hover:text-gray-300'}`}
             >
@@ -279,7 +283,7 @@ const Profile = () => {
               </div>
               <h3 className="text-lg font-bold text-white mb-2">ยังไม่มีสินค้าในคลัง</h3>
               <p className="text-sm text-gray-400 mb-6 max-w-sm">ยังไม่ได้ลงประกาศสินค้าใดๆ</p>
-              
+
               {isMe && (
                 <Link to="/create-product" className="px-6 py-2.5 bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] rounded-lg font-bold text-sm shadow-[0_0_15px_rgba(139,44,245,0.4)] hover:opacity-90 transition inline-block">
                   + เพิ่มสินค้าใหม่
@@ -289,30 +293,48 @@ const Profile = () => {
           )}
 
           {activeTab === 'posts' && (
-                        <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4">
+
+              {/* 🟢 ส่วนปุ่ม Filter ที่เพิ่มเข้ามาใหม่ (Style เดียวกับ Community) */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-none">
+                {Object.entries(POST_TYPE_LABELS).map(([key, { label, icon }]) => (
+                  <button
+                    key={key}
+                    onClick={() => setPostFilter(key)}
+                    className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-all border ${postFilter === key
+                      ? 'bg-[#8b2cf5] border-[#8b2cf5] text-white shadow-[0_0_12px_rgba(139,44,245,0.4)]'
+                      : 'bg-[#12121e] border-[#2a2a3e] text-gray-400 hover:border-[#8b2cf5] hover:text-white'
+                      }`}
+                  >
+                    {icon}
+                    {label}
+                  </button>
+                ))}
+              </div>
+
               {loadingPosts ? (
-                 <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#8b2cf5]" /></div>
+                <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#8b2cf5]" /></div>
               ) : userPosts.length > 0 ? (
-                 userPosts.map(post => (
-                    <PostCard 
-                       key={post._id} 
-                       post={post} 
-                       currentUser={currentUser} 
-                       liked={post.likes?.includes(currentUser?.id || currentUser?._id)} 
-                       onLike={() => handleLikePost(post._id)} 
-                       onComment={() => {}} 
-                       onDeleteComment={() => {}} 
-                       onDeletePost={() => {}} 
-                    />
-                 ))
+                userPosts.map(post => (
+                  <PostCard
+                    key={post._id}
+                    post={post}
+                    currentUser={currentUser}
+                    liked={post.likes?.includes(currentUser?.id || currentUser?._id)}
+                    onLike={() => handleLikePost(post._id)}
+                    onComment={() => { }}
+                    onDeleteComment={() => { }}
+                    onDeletePost={() => { }}
+                  />
+                ))
               ) : (
-                 <div className="bg-[#12121e] border border-[#2a2a3e] rounded-xl p-10 flex flex-col items-center justify-center text-center">
-                   <div className="w-16 h-16 bg-[#1c1c2b] rounded-full flex items-center justify-center mb-4">
-                     <MessageSquare className="w-8 h-8 text-[#4361ee]" />
-                   </div>
-                   <h3 className="text-lg font-bold text-white mb-2">ยังไม่มีโพสต์</h3>
-                   <p className="text-sm text-gray-400">ผู้ใช้นี้ยังไม่ได้โพสต์อะไรในชุมชน</p>
-                 </div>
+                <div className="bg-[#12121e] border border-[#2a2a3e] rounded-xl p-10 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 bg-[#1c1c2b] rounded-full flex items-center justify-center mb-4">
+                    <MessageSquare className="w-8 h-8 text-[#4361ee]" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">ไม่พบโพสต์</h3>
+                  <p className="text-sm text-gray-400">ผู้ใช้นี้ยังไม่ได้โพสต์ในหมวดหมู่ที่เลือก</p>
+                </div>
               )}
             </div>
           )}
