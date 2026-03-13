@@ -58,7 +58,7 @@ const Community = () => {
     const [showDropdown, setShowDropdown] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [likedPosts, setLikedPosts] = useState(new Set());
-    const [friends, setFriends] = useState([]); 
+    const [friends, setFriends] = useState([]);
 
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -108,8 +108,8 @@ const Community = () => {
         }
     };
 
-    useEffect(() => { 
-        fetchPosts(); 
+    useEffect(() => {
+        fetchPosts();
         fetchFriends();
         fetchNotifications();
     }, [activeFilter]);
@@ -121,12 +121,12 @@ const Community = () => {
 
     const handleToggleNotifications = async () => {
         setShowNotifications(!showNotifications);
-        setShowDropdown(false); 
+        setShowDropdown(false);
         if (!showNotifications && unreadCount > 0) {
             try {
                 await axios.put(`${API}/notifications/mark-read`, {}, { withCredentials: true });
-                setUnreadCount(0); 
-                setNotifications(prev => prev.map(n => ({ ...n, isRead: true }))); 
+                setUnreadCount(0);
+                setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             } catch (error) {
                 console.error("Mark as read error:", error);
             }
@@ -145,7 +145,7 @@ const Community = () => {
             setPosts(prev => prev.map(p => {
                 if (p._id !== postId) return p;
                 const liked = likedPosts.has(postId);
-                return { ...p, likes: liked ? p.likes.slice(0, -1) : [...p.likes, currentUser.id] }; 
+                return { ...p, likes: liked ? p.likes.slice(0, -1) : [...p.likes, currentUser.id] };
             }));
         } catch (err) {
             console.error('like error', err);
@@ -205,7 +205,7 @@ const Community = () => {
 
                     <div className="flex items-center gap-5 w-auto justify-end">
                         <Link to="/shops" className="hidden md:flex items-center gap-2 text-gray-300 hover:text-[#8b2cf5] font-medium transition-colors mr-2"><Store className="w-5 h-5" /> ร้านค้า</Link>
-                        
+
                         <div className="relative">
                             <div className="relative cursor-pointer hover:text-[#8b2cf5] transition" onClick={handleToggleNotifications}>
                                 <Bell className="w-6 h-6 text-gray-300" />
@@ -285,8 +285,8 @@ const Community = () => {
                         <div className="flex flex-col gap-3">
                             {friends.length > 0 ? (
                                 friends.map(f => (
-                                    <div 
-                                        key={f._id} 
+                                    <div
+                                        key={f._id}
                                         onClick={() => {
                                             // 🟢 จิ้มที่ชื่อเพื่อนปุ๊บ วาร์ปไปคุยแชทกับเพื่อนคนนี้ปั๊บ!
                                             navigate('/chat', {
@@ -296,7 +296,7 @@ const Community = () => {
                                                     chatType: 'GENERAL'
                                                 }
                                             });
-                                        }} 
+                                        }}
                                         className="flex items-center gap-3 cursor-pointer group hover:bg-[#1c1c2b] rounded-lg p-2 transition-colors -mx-2"
                                     >
                                         <div className="relative">
@@ -309,7 +309,7 @@ const Community = () => {
                             ) : (<div className="text-center py-6 border border-dashed border-[#2a2a3e] rounded-lg"><p className="text-sm text-gray-400">ยังไม่มีเพื่อน</p><p className="text-[10px] text-gray-500 mt-1">ต้องติดตามกันและกันก่อนนะ!</p></div>)}
                         </div>
                         <div className="mt-4 pt-4 border-t border-[#2a2a3e]">
-                            <button 
+                            <button
                                 onClick={() => {
                                     // 🟢 ถ้ามีเพื่อน ให้เปิดแชทกับคนแรกในลิสต์ทันที
                                     if (friends.length > 0) {
@@ -356,25 +356,25 @@ const Community = () => {
 // ═══════════════ POST CARD ═══════════════
 function PostCard({ post, currentUser, liked, onLike }) {
     const [expanded, setExpanded] = useState(false);
-    const [showMenu, setShowMenu] = useState(false); 
-    const navigate = useNavigate(); 
+    const [showMenu, setShowMenu] = useState(false);
+    const navigate = useNavigate();
     const badgeClass = TYPE_BADGE_COLORS[post.postType] || TYPE_BADGE_COLORS.GENERAL;
     const label = POST_TYPE_LABELS[post.postType]?.label || post.postType;
     const isMe = String(currentUser?.id || currentUser?._id) === String(post.author?._id);
     const isTradeRelated = ["TRADE_OFFER", "FINDING_ITEM"].includes(post.postType);
 
     const handleChatClick = (e, type) => {
-        e.stopPropagation(); setShowMenu(false); 
+        e.stopPropagation(); setShowMenu(false);
         navigate('/chat', { state: { receiverId: post.author._id, receiverName: post.author.username, chatType: type } });
     };
 
     const handleFollowClick = async (e) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         try {
             const res = await axios.put(`${API}/auth/follow/${post.author._id}`, {}, { withCredentials: true });
             if (res.data.success) { alert(res.data.isFollowing ? '✅ ติดตามแล้ว!' : '❌ เลิกติดตามแล้ว'); }
         } catch (error) { console.error("Follow error:", error); alert("ไม่สามารถติดตามได้"); }
-        setShowMenu(false); 
+        setShowMenu(false);
     };
 
     return (

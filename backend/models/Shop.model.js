@@ -1,12 +1,18 @@
     import mongoose from "mongoose";
 
     const shopSchema = new mongoose.Schema({
-        //ร้านค้าต้องมีเจ้าของ
         ownerId:{
             type:mongoose.Schema.Types.ObjectId,
             ref:"User",
             required:[true , "ร้านค้าต้องมีเจ้าของ UserId"],
             unique:true
+        },
+        //รหัสร้านค้า 6 หลัก
+        shopCode:{
+            type:String,
+            unique:true,
+            required:true,
+            length:6
         },
         
         //ข้อมูลหน้าร้าน

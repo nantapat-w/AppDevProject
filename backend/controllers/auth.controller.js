@@ -162,9 +162,17 @@ export const refreshToken = async (req, res) => {
 
         const tokens = generateToken(user);
 
+        // ✅ Set accessToken cookie ใหม่ให้ browser
+        const cookieOptions = {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            maxAge: 15 * 60 * 1000, // 15 นาที
+        };
+        res.cookie("accessToken", tokens.accessToken, cookieOptions);
+
         res.status(200).json({
             success: true,
-            accessToken: tokens.accessToken,
             message: "ต่ออายุเซสชั่นสำเร็จ"
         });
     } catch (error) {
@@ -176,8 +184,11 @@ export const refreshToken = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const { phoneNumber } = req.body;
-        let updateData = { phoneNumber };
+        let updateData = {};
 
+        if (phoneNumber !== undefined) {
+            updateData.phoneNumber = phoneNumber;
+        }
         if (req.file) {
             updateData.imageProfile = req.file.path; 
         }
@@ -190,6 +201,11 @@ export const updateProfile = async (req, res) => {
 
         res.status(200).json({ success: true, message: "อัปเดตโปรไฟล์สำเร็จ", data: updatedUser });
     } catch (error) {
+        // ดึง validation error message จาก Mongoose ออกมาให้ชัดเจน
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(e => e.message);
+            return res.status(400).json({ success: false, message: messages.join(', ') });
+        }
         res.status(500).json({ success: false, message: error.message });
     }
 };

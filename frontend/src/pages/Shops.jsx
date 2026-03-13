@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Plus, ArrowLeft, Store, Star, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, Plus, ArrowLeft, Store, Star, MapPin, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -7,17 +7,18 @@ const Shops = () => {
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [myShop, setMyShop] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const currentUser = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
     const fetchShops = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/shops'); 
+        const response = await axios.get('http://localhost:5000/api/shops');
         if (response.data.success) {
           setShops(response.data.data);
         }
-        
+
         // ดึงข้อมูลร้านของตัวเองถ้าล็อกอินอยู่
         if (currentUser) {
           const myShopRes = await axios.get('http://localhost:5000/api/shops/my-shop', { withCredentials: true });
@@ -33,6 +34,16 @@ const Shops = () => {
     };
     fetchShops();
   }, []);
+
+  // 🔍 filter ร้านค้าตาม searchQuery แบบ real-time
+  const filteredShops = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return shops;
+    return shops.filter(shop =>
+      shop.shopName?.toLowerCase().includes(q) ||
+      shop.shopDescription?.toLowerCase().includes(q)
+    );
+  }, [shops, searchQuery]);
 
   return (
     <div className="min-h-screen bg-[#05050f] text-white font-sans pb-10">
@@ -50,14 +61,25 @@ const Shops = () => {
           </div>
 
           <div className="hidden md:block flex-1 max-w-xl relative">
-            <input 
-              type="text" 
-              placeholder="ค้นหาชื่อร้านค้า..." 
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="ค้นหาชื่อร้านค้า..."
               className="w-full bg-[#151522] border border-[#2a2a3e] rounded-full py-2 pl-5 pr-12 focus:outline-none focus:border-[#8b2cf5] transition-all text-sm placeholder-gray-500"
             />
-            <button className="absolute right-1.5 top-1.5 p-1 bg-[#8b2cf5] rounded-full hover:bg-[#7220c7] transition">
-              <Search className="w-4 h-4 text-white" />
-            </button>
+            {searchQuery ? (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-1.5 top-1.5 p-1 bg-[#2a2a3e] rounded-full hover:bg-[#3a3a4e] transition"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            ) : (
+              <button className="absolute right-1.5 top-1.5 p-1 bg-[#8b2cf5] rounded-full hover:bg-[#7220c7] transition">
+                <Search className="w-4 h-4 text-white" />
+              </button>
+            )}
           </div>
 
           <div>
@@ -98,48 +120,67 @@ const Shops = () => {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {shops.map((shop) => (
-              // 🟢 เปลี่ยนจาก div เป็น Link และส่งไปที่ URL ร้านค้านั้นๆ
-              <Link 
-                key={shop._id} 
-                to={`/shops/${shop._id}`} 
-                className="block bg-[#12121e] rounded-xl border border-[#2a2a3e] p-5 hover:border-[#8b2cf5] transition-all cursor-pointer group hover:shadow-[0_0_20px_rgba(139,44,245,0.1)]"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 rounded-full bg-[#1c1c2b] border border-[#2a2a3e] flex-shrink-0 overflow-hidden group-hover:border-[#8b2cf5] transition-colors">
-                    {shop.shopImage ? (
-                      <img src={shop.shopImage} alt={shop.shopName} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-500 bg-gradient-to-tr from-[#1c1c2b] to-[#2a2a3e]">
-                        {shop.shopName?.charAt(0) || 'S'}
+          <>
+            {/* แสดงจำนวนผลลัพธ์เมื่อค้นหา */}
+            {searchQuery && (
+              <p className="text-sm text-gray-400 mb-4">
+                พบ <span className="text-white font-bold">{filteredShops.length}</span> ร้านค้า สำหรับ "{searchQuery}"
+              </p>
+            )}
+
+            {filteredShops.length === 0 ? (
+              <div className="flex flex-col justify-center items-center py-20 bg-[#12121e] rounded-xl border border-[#2a2a3e] text-gray-400">
+                <Search className="w-12 h-12 mb-3 text-[#2a2a3e]" />
+                <h3 className="text-lg font-medium text-gray-300">ไม่พบร้านค้าที่ค้นหา</h3>
+                <p className="text-sm mt-1">ลองค้นหาด้วยคำอื่น หรือ
+                  <button onClick={() => setSearchQuery('')} className="text-[#8b2cf5] ml-1 hover:underline">ล้างการค้นหา</button>
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredShops.map((shop) => (
+                  // 🟢 เปลี่ยนจาก div เป็น Link และส่งไปที่ URL ร้านค้านั้นๆ
+                  <Link
+                    key={shop._id}
+                    to={`/shops/${shop._id}`}
+                    className="block bg-[#12121e] rounded-xl border border-[#2a2a3e] p-5 hover:border-[#8b2cf5] transition-all cursor-pointer group hover:shadow-[0_0_20px_rgba(139,44,245,0.1)]"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 rounded-full bg-[#1c1c2b] border border-[#2a2a3e] flex-shrink-0 overflow-hidden group-hover:border-[#8b2cf5] transition-colors">
+                        {shop.shopLogo ? (
+                          <img src={shop.shopLogo} alt={shop.shopName} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-500 bg-gradient-to-tr from-[#1c1c2b] to-[#2a2a3e]">
+                            {shop.shopName?.charAt(0) || 'S'}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-white group-hover:text-[#8b2cf5] transition-colors line-clamp-1">
-                      {shop.shopName}
-                    </h3>
-                    <p className="text-xs text-gray-400 line-clamp-2 mt-1">
-                      {shop.description || 'ไม่มีคำอธิบายร้านค้า'}
-                    </p>
-                    
-                    <div className="flex items-center gap-4 mt-3">
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                        <span>{shop.rating || '5.0'}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>{shop.location || 'ออนไลน์'}</span>
+
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-white group-hover:text-[#8b2cf5] transition-colors line-clamp-1">
+                          {shop.shopName}
+                        </h3>
+                        <p className="text-xs text-gray-400 line-clamp-2 mt-1">
+                          {shop.shopDescription || 'ไม่มีคำอธิบายร้านค้า'}
+                        </p>
+
+                        <div className="flex items-center gap-4 mt-3">
+                          <div className="flex items-center gap-1 text-xs text-gray-400">
+                            <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                            <span>{shop.rating || '5.0'}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-gray-400">
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span>{shop.location || 'ออนไลน์'}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

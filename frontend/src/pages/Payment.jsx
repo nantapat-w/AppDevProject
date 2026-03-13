@@ -13,7 +13,7 @@ const PaymentPage = () => {
     const [method, setMethod] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
-    
+
     // Address state
     const [defaultAddress, setDefaultAddress] = useState(null);
     const [isLoadingAddress, setIsLoadingAddress] = useState(false);
@@ -158,7 +158,7 @@ const PaymentPage = () => {
                                 </span>
                             )}
                         </div>
-                        <button 
+                        <button
                             onClick={() => navigate('/account-settings', { state: { activeTab: 'address' } })}
                             className="text-xs font-bold text-[#4361ee] hover:underline flex items-center gap-1 bg-[#4361ee]/10 px-3 py-1.5 rounded-full border border-[#4361ee]/20 transition-all self-start sm:self-auto"
                         >

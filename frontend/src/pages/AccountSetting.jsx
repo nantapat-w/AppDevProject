@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
 import {
   ArrowLeft, User, ShieldCheck, MapPin, CreditCard,
   ChevronRight, Save, Camera, Lock, Eye, EyeOff,
@@ -49,7 +49,7 @@ const AccountSetting = () => {
   const fetchAddresses = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:5000/api/account-settings/addresses', { withCredentials: true });
+      const res = await axiosInstance.get('/account-settings/addresses', { withCredentials: true });
       if (res.data.success) {
         setAddresses(res.data.addresses);
       }
@@ -68,9 +68,9 @@ const AccountSetting = () => {
       let res;
       
       if (editingAddress) {
-        res = await axios.put(`http://localhost:5000/api/account-settings/addresses/${editingAddress._id}`, formData, config);
+        res = await axiosInstance.put(`/account-settings/addresses/${editingAddress._id}`, formData, config);
       } else {
-        res = await axios.post('http://localhost:5000/api/account-settings/addresses', formData, config);
+        res = await axiosInstance.post('/account-settings/addresses', formData, config);
       }
 
       if (res.data.success) {
@@ -90,7 +90,7 @@ const AccountSetting = () => {
   const handleDeleteAddress = async (id) => {
     if (!window.confirm('คุณต้องการลบที่อยู่นี้ใช่หรือไม่?')) return;
     try {
-      const res = await axios.delete(`http://localhost:5000/api/account-settings/addresses/${id}`, { withCredentials: true });
+      const res = await axiosInstance.delete(`/account-settings/addresses/${id}`, { withCredentials: true });
       if (res.data.success) {
         setAddresses(res.data.addresses);
       }
@@ -101,7 +101,7 @@ const AccountSetting = () => {
 
   const handleSetDefault = async (id) => {
     try {
-      const res = await axios.patch(`http://localhost:5000/api/account-settings/addresses/${id}/default`, {}, { withCredentials: true });
+      const res = await axiosInstance.patch(`/account-settings/addresses/${id}/default`, {}, { withCredentials: true });
       if (res.data.success) {
         setAddresses(res.data.addresses);
       }
@@ -126,14 +126,100 @@ const AccountSetting = () => {
     setIsAdding(true);
   };
 
-  // ข้อมูลจำลองสำหรับ UI ส่วนอื่นๆ
+  // ข้อมูลผู้ใช้จาก backend
   const [user, setUser] = useState({
-    username: 'Nantapat.W',
-    email: 'nantapat.w@example.com',
-    fullName: 'Nantapat Wisetwongsa',
-    phone: '081-234-5678',
+    username: '',
+    email: '',
+    phoneNumber: '',
     imageProfile: null
   });
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState(null); // { type: 'success'|'error', text }
+
+  // โหลดข้อมูล user จริงจาก backend
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        setProfileLoading(true);
+        const res = await axiosInstance.get('/auth/me');
+        if (res.data.success) {
+          const u = res.data.data;
+          setUser({
+            username: u.username || '',
+            email: u.email || '',
+            phoneNumber: u.phoneNumber || '',
+            imageProfile: u.imageProfile || null,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load user:', err);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  // อัปโหลดรูปโปรไฟล์ทันทีเมื่อเลือกไฟล์
+  const handleProfileImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Preview ทันที
+    const previewUrl = URL.createObjectURL(file);
+    setUser(prev => ({ ...prev, imageProfile: previewUrl }));
+
+    try {
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append('imageProfile', file);
+      const res = await axiosInstance.put('/auth/profile', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        withCredentials: true,
+      });
+      if (res.data.success) {
+        const newUrl = res.data.data?.imageProfile;
+        if (newUrl) setUser(prev => ({ ...prev, imageProfile: newUrl }));
+        // อัปเดต localStorage ถ้ามี
+        const stored = localStorage.getItem('user');
+        if (stored && stored !== 'undefined') {
+          const parsed = JSON.parse(stored);
+          parsed.imageProfile = newUrl || parsed.imageProfile;
+          localStorage.setItem('user', JSON.stringify(parsed));
+        }
+        setProfileMsg({ type: 'success', text: '✅ อัปโหลดรูปโปรไฟล์สำเร็จ!' });
+      }
+    } catch (err) {
+      console.error('Upload failed:', err);
+      setProfileMsg({ type: 'error', text: '❌ อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่' });
+    } finally {
+      setUploadingImage(false);
+      setTimeout(() => setProfileMsg(null), 3000);
+    }
+  };
+
+  // บันทึกข้อมูลโปรไฟล์ (เบอร์โทร)
+  const handleSaveProfile = async () => {
+    try {
+      setSavingProfile(true);
+      const formData = new FormData();
+      if (user.phoneNumber) formData.append('phoneNumber', user.phoneNumber);
+      const res = await axiosInstance.put('/auth/profile', formData, {
+        withCredentials: true,
+      });
+      if (res.data.success) {
+        setProfileMsg({ type: 'success', text: '✅ บันทึกข้อมูลสำเร็จ!' });
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'บันทึกไม่สำเร็จ กรุณาลองใหม่';
+      setProfileMsg({ type: 'error', text: `❌ ${msg}` });
+    } finally {
+      setSavingProfile(false);
+      setTimeout(() => setProfileMsg(null), 4000);
+    }
+  };
 
   const tabs = [
     { id: 'profile', label: 'ข้อมูลส่วนตัว', icon: <User className="w-5 h-5" /> },
@@ -147,56 +233,95 @@ const AccountSetting = () => {
       case 'profile':
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+
+            {/* Flash Message */}
+            {profileMsg && (
+              <div className={`px-4 py-3 rounded-xl text-sm font-medium ${profileMsg.type === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+                {profileMsg.text}
+              </div>
+            )}
+
             <div className="flex flex-col items-center sm:flex-row gap-8 pb-8 border-b border-[#2a2a3e]">
               <div className="relative group">
-                <div className="w-32 h-32 rounded-3xl bg-[#0a0a16] border-2 border-[#2a2a3e] overflow-hidden shadow-2xl flex items-center justify-center">
-                  {user.imageProfile ? (
-                    <img src={user.imageProfile} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-12 h-12 text-gray-500" />
-                  )}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-all cursor-pointer">
-                    <Camera className="w-8 h-8 text-white mb-1" />
-                    <span className="text-[10px] text-white font-bold uppercase tracking-wider">Change Photo</span>
+                <label htmlFor="profileImageInput" className="cursor-pointer block">
+                  <div className="w-32 h-32 rounded-3xl bg-[#0a0a16] border-2 border-[#2a2a3e] overflow-hidden shadow-2xl flex items-center justify-center relative">
+                    {user.imageProfile ? (
+                      <img src={user.imageProfile} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-12 h-12 text-gray-500" />
+                    )}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-all">
+                      {uploadingImage
+                        ? <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-white" />
+                        : <>
+                            <Camera className="w-8 h-8 text-white mb-1" />
+                            <span className="text-[10px] text-white font-bold uppercase tracking-wider">Change Photo</span>
+                          </>
+                      }
+                    </div>
                   </div>
-                </div>
+                </label>
+                <input
+                  id="profileImageInput"
+                  type="file"
+                  accept="image/jpg,image/jpeg,image/png"
+                  className="hidden"
+                  onChange={handleProfileImageChange}
+                />
               </div>
               <div className="flex-1 space-y-2 text-center sm:text-left">
                 <h3 className="text-xl font-bold">รูปโปรไฟล์ของคุณ</h3>
                 <p className="text-sm text-gray-500 max-w-sm">แนะนำให้ใช้รูปที่มีขนาดไฟล์ไม่เกิน 2MB และเป็นไฟล์ประเภท .jpg หรือ .png</p>
                 <div className="flex gap-3 justify-center sm:justify-start pt-2">
-                  <button className="px-4 py-2 bg-[#8b2cf5] text-white text-xs font-bold rounded-lg hover:bg-[#7220c7] transition">Upload New</button>
-                  <button className="px-4 py-2 bg-[#151522] border border-[#2a2a3e] text-gray-400 text-xs font-bold rounded-lg hover:text-white transition">Remove</button>
+                  <label htmlFor="profileImageInput" className="px-4 py-2 bg-[#8b2cf5] text-white text-xs font-bold rounded-lg hover:bg-[#7220c7] transition cursor-pointer flex items-center gap-2">
+                    <Camera className="w-3 h-3" />
+                    {uploadingImage ? 'กำลังอัปโหลด...' : 'อัปโหลดรูปใหม่'}
+                  </label>
+                  <button
+                    onClick={() => setUser(prev => ({ ...prev, imageProfile: null }))}
+                    className="px-4 py-2 bg-[#151522] border border-[#2a2a3e] text-gray-400 text-xs font-bold rounded-lg hover:text-white transition"
+                  >
+                    ลบรูป
+                  </button>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">Username</label>
-                <input type="text" value={user.username} readOnly className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner" />
+            {profileLoading ? (
+              <div className="flex justify-center py-10">
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-[#8b2cf5]" />
               </div>
-              <div className="space-y-2">
-                <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">Email Address</label>
-                <input type="email" value={user.email} readOnly className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner" />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">Username</label>
+                  <input type="text" value={user.username} readOnly className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none text-gray-400 cursor-not-allowed shadow-inner" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">Email Address</label>
+                  <input type="email" value={user.email} readOnly className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none text-gray-400 cursor-not-allowed shadow-inner" />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">เบอร์โทรศัพท์</label>
+                  <input
+                    type="text"
+                    value={user.phoneNumber}
+                    onChange={(e) => setUser(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                    placeholder="เช่น 081-234-5678"
+                    className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">Full Name</label>
-                <input type="text" value={user.fullName} className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">Phone Number</label>
-                <input type="text" value={user.phone} className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner" />
-              </div>
-            </div>
+            )}
 
             <div className="pt-6">
-              <button className="px-8 py-4 bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] text-white font-bold rounded-xl shadow-[0_8px_25px_rgba(139,44,245,0.4)] hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2">
-                <Save className="w-5 h-5" /> บันทึกข้อมูล
+              <button onClick={handleSaveProfile} disabled={savingProfile} className="px-8 py-4 bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] text-white font-bold rounded-xl shadow-[0_8px_25px_rgba(139,44,245,0.4)] hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 disabled:opacity-60">
+                <Save className="w-5 h-5" /> {savingProfile ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
               </button>
             </div>
           </div>
         );
+
       case 'security':
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">

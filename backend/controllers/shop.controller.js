@@ -23,9 +23,21 @@ export const createShop = async (req, res) => {
             logoUrl = req.file.path; 
         }
 
+        // 🌟 สร้างรหัสร้านค้า 6 หลักที่ไม่ซ้ำ
+        let shopCode;
+        let isUnique = false;
+        while (!isUnique) {
+            shopCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6 หลัก
+            const existingCode = await Shop.findOne({ shopCode });
+            if (!existingCode) {
+                isUnique = true;
+            }
+        }
+
         const newShop = await Shop.create({
             ownerId: req.user._id,
             shopName,
+            shopCode, // บันทึกรหัสร้านค้า 6 หลัก
             shopDescription: shopDescription || "ยินดีต้อนรับสู่ร้านค้าของเรา",
             shopLogo: logoUrl, // บันทึก URL ลง MongoDB
             shopBanner: shopBanner || "" 
@@ -53,7 +65,7 @@ export const getAllShops = async (req, res) => {
 export const getShopById = async (req, res) => {
     try {
         const shop = await Shop.findById(req.params.id)
-            .populate("ownerId", "username imageProfile trustScore");
+            .populate("ownerId", "username imageProfile trustScore email");
             
         if (!shop) {
             return res.status(404).json({ success: false, message: "ไม่พบร้านค้านี้" });

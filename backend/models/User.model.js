@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
     },
     phoneNumber:{
         type:String,
-        match: [/^[0-9]{10}$/, 'เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก'],
+        match: [/^[0-9\-\s]{9,15}$/, 'เบอร์โทรศัพท์ไม่ถูกต้อง (ตัวเลข 9-15 หลัก)'],
     },
     role:{
         type:String,
