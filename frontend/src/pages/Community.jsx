@@ -5,8 +5,10 @@ import {
     ChevronRight, Image, Send, Flame, BookOpen, ThumbsUp, AlertTriangle,
     PackageSearch, Sparkles, PackageOpen, Check, Camera, Video, Trash2, Share2
 } from 'lucide-react';
+
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+
 
 // ---------- utils ----------
 const API = 'http://localhost:5000/api';
@@ -323,6 +325,8 @@ const Community = () => {
                                                 <Link to="/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#1c1c2b] hover:text-[#8b2cf5] rounded-lg transition-colors"><User className="w-4 h-4" /> โปรไฟล์ของฉัน</Link>
                                                 <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors mt-1"><LogOut className="w-4 h-4" /> ออกจากระบบ</button>
                                             </div>
+
+
                                         </div>
                                     )}
                                 </div>

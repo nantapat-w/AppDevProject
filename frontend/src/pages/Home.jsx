@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, MessageSquare, Bell, User, Star, Repeat, Users, PackageOpen, LogOut, Store } from 'lucide-react';
+import { Search, ShoppingBag, MessageSquare, Bell, User, Star, Repeat, Users, PackageOpen, LogOut, Store, ClipboardList, Settings } from 'lucide-react';
+
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo0.png';
@@ -104,6 +105,12 @@ const Home = () => {
                       <div className="p-2">
                         <Link to="/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#1c1c2b] hover:text-[#8b2cf5] rounded-lg transition-colors">
                           <User className="w-4 h-4" /> โปรไฟล์ของฉัน
+                        </Link>
+                        <Link to="/orders" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#1c1c2b] hover:text-[#8b2cf5] rounded-lg transition-colors mt-1">
+                          <ClipboardList className="w-4 h-4" /> ประวัติการสั่งซื้อ
+                        </Link>
+                        <Link to="/account-settings" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#1c1c2b] hover:text-[#8b2cf5] rounded-lg transition-colors mt-1">
+                          <Settings className="w-4 h-4" /> ตั้งค่าบัญชี
                         </Link>
                         <button 
                           onClick={handleLogout}
