@@ -157,6 +157,8 @@ const AccountSetting = () => {
 
   // Account deletion state
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // โหลดข้อมูล user จริงจาก backend
@@ -284,14 +286,34 @@ const AccountSetting = () => {
   };
 
   const handleDeleteAccount = async () => {
-    // Immediate browser confirmation as requested
-    const isConfirmed = window.confirm("⚠️ คุณต้องการลบบัญชีผู้ใช้งานอย่างถาวรใช่หรือไม่?\n\nข้อมูลโปรไฟล์ ร้านค้า และสินค้าทั้งหมดจะถูกลบและไม่สามารถกู้คืนได้");
-
-    if (!isConfirmed) return;
-
     try {
       setIsDeleting(true);
-      const res = await axiosInstance.delete('/auth/account', { withCredentials: true });
+      setProfileMsg(null);
+
+      // Step 1: Verify Password first
+      const verifyRes = await axiosInstance.delete('/auth/account', {
+        data: { password: deletePassword, verifyOnly: true },
+        withCredentials: true
+      });
+
+      if (!verifyRes.data.success) {
+        throw new Error(verifyRes.data.message || 'รหัสผ่านไม่ถูกต้อง');
+      }
+
+      // Step 2: Show confirmation ONLY if password is correct
+      const isConfirmed = window.confirm("⚠️ คุณต้องการลบบัญชีผู้ใช้งานอย่างถาวรใช่หรือไม่?\n\nข้อมูลโปรไฟล์ ร้านค้า และสินค้าทั้งหมดจะถูกลบและไม่สามารถกู้คืนได้");
+
+      if (!isConfirmed) {
+        setIsDeleting(false);
+        return;
+      }
+
+      // Step 3: Perform actual deletion
+      const res = await axiosInstance.delete('/auth/account', {
+        data: { password: deletePassword },
+        withCredentials: true
+      });
+
       if (res.data.success) {
         // Clear all session and cache
         localStorage.clear();
@@ -301,10 +323,11 @@ const AccountSetting = () => {
       }
     } catch (err) {
       console.error('Account deletion error:', err);
-      const errorMsg = err.response?.data?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+      const errorMsg = err.response?.data?.message || err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
       setProfileMsg({ type: 'error', text: `❌ ลบบัญชีไม่สำเร็จ: ${errorMsg}` });
     } finally {
       setIsDeleting(false);
+      setDeletePassword(''); // Reset password on failure or after cancel
       setTimeout(() => setProfileMsg(null), 5000);
     }
   };
@@ -785,11 +808,6 @@ const AccountSetting = () => {
       case 'advanced':
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-            {profileMsg && (
-              <div className={`px-4 py-3 rounded-xl text-sm font-medium ${profileMsg.type === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-                {profileMsg.text}
-              </div>
-            )}
             <div className="pb-4 border-b border-[#2a2a3e]">
               <h3 className="text-xl font-bold flex items-center gap-2 text-red-500"><Settings className="w-6 h-6" /> การตั้งค่าขั้นสูง (Danger Zone)</h3>
               <p className="text-sm text-gray-400 mt-2">พื้นที่นี้มีการดำเนินการที่มีความเสี่ยงสูง โปรดระมัดระวังก่อนดำเนินการใดๆ</p>
@@ -813,18 +831,58 @@ const AccountSetting = () => {
               </div>
 
               <div className="pt-4 border-t border-red-500/10">
-                <p className="text-xs text-red-400/80 mb-6 italic">* เมื่อกดยืนยันแล้ว บัญชีของคุณจะถูกลบออกทันทีและไม่สามารถกู้คืนข้อมูลได้</p>
+                <label className="flex items-center gap-4 group cursor-pointer p-4 bg-red-500/5 border border-red-500/10 rounded-xl hover:bg-red-500/10 transition-all mb-6">
+                  <div className="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={deleteConfirm}
+                      onChange={(e) => setDeleteConfirm(e.target.checked)}
+                      className="peer h-6 w-6 cursor-pointer appearance-none rounded border border-red-500/50 bg-[#151522] checked:bg-red-500 transition-all focus:outline-none"
+                    />
+                    <Check className="pointer-events-none absolute left-1 top-1 h-4 w-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
+                  </div>
+                  <span className="text-sm text-gray-300 group-hover:text-white select-none transition-colors">
+                    ฉันเข้าใจและยอมรับเงื่อนไขทั้งหมด และต้องการลบบัญชีของฉัน
+                  </span>
+                </label>
+
+                {deleteConfirm && (
+                  <div className="mb-6 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">ยืนยันรหัสผ่านเพื่อลบบัญชี</label>
+                    <div className="relative">
+                      <input
+                        type={showDeletePassword ? "text" : "password"}
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
+                        placeholder="กรอกรหัสผ่านของคุณ"
+                        className="w-full bg-[#0a0a16] border border-red-500/30 rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-red-500 transition shadow-inner"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowDeletePassword(!showDeletePassword)}
+                        className="absolute right-4 top-4 text-gray-500 hover:text-white transition"
+                      >
+                        {showDeletePassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    {profileMsg && (
+                      <div className={`mt-3 px-4 py-3 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-1 duration-200 ${profileMsg.type === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+                        {profileMsg.text}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <button
                   type="button"
                   onClick={handleDeleteAccount}
-                  disabled={isDeleting}
-                  className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-red-600 to-red-500 text-white font-black rounded-2xl shadow-[0_10px_30px_rgba(220,38,38,0.4)] hover:shadow-[0_15px_40px_rgba(220,38,38,0.5)] hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 uppercase tracking-wider"
+                  disabled={!deleteConfirm || !deletePassword || isDeleting}
+                  className="w-full sm:w-auto px-10 py-4 bg-red-500 text-white font-bold rounded-xl shadow-[0_8px_25px_rgba(239,68,68,0.3)] hover:bg-red-600 active:scale-95 transition-all disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isDeleting ? (
-                    <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> กำลังลบบัญชี...</>
+                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> กำลังลบบัญชี...</>
                   ) : (
-                    <><Trash2 className="w-6 h-6" /> ยืนยันการลบบัญชีถาวร</>
+                    <><Trash2 className="w-5 h-5" /> ยืนยันการลบบัญชีถาวร</>
                   )}
                 </button>
               </div>

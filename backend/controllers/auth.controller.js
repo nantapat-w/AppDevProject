@@ -2,7 +2,7 @@ import User from "../models/User.model.js";
 import Notification from "../models/Notification.model.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import redis from "../utils/redis.js"; 
+import redis from "../utils/redis.js";
 import sendEmail from "../utils/sendEmail.js"; // 📧 อย่าลืม import ตัวส่งเมลที่นายน้อยทำไว้นะครับ!
 
 // 🔑 1. ฟังก์ชันสร้าง Token
@@ -119,7 +119,7 @@ export const logout = async (req, res) => {
         if (accessToken) {
             await redis.set(`blacklist:${accessToken}`, "true", "EX", 900);
         }
-        
+
         // ดึง userId จาก token โดยตรงเพื่อความชัวร์ (กรณี protectRoute ไม่ทำงาน)
         if (refreshToken) {
             try {
@@ -151,7 +151,7 @@ export const refreshToken = async (req, res) => {
         }
 
         const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_TOKEN);
-        
+
         const storedToken = await redis.get(`session:${decoded.id}`);
         if (!storedToken || storedToken !== refreshToken) {
             return res.status(401).json({ message: "เซสชั่นหมดอายุหรือถูกบังคับออกจากระบบ" });
@@ -191,7 +191,7 @@ export const updateProfile = async (req, res) => {
         if (birthday !== undefined) updateData.birthday = birthday;
         if (bio !== undefined) updateData.bio = bio;
         if (req.file) {
-            updateData.imageProfile = req.file.path; 
+            updateData.imageProfile = req.file.path;
         }
 
         const updatedUser = await User.findByIdAndUpdate(
@@ -323,7 +323,7 @@ export const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
         const user = await User.findOne({ email });
-        
+
         if (!user) return res.status(404).json({ success: false, message: "ไม่พบอีเมลในระบบ" });
 
         // สร้าง Token อายุ 15 นาที เพื่อใช้ในการรีเซ็ตรหัสผ่าน
@@ -347,9 +347,26 @@ export const forgotPassword = async (req, res) => {
 // 🗑️ 14. ลบบัญชีผู้ใช้งาน
 export const deleteAccount = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
+        const { password } = req.body;
+        const user = await User.findById(req.user._id).select("+password");
+
         if (!user) {
             return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้งาน" });
+        }
+
+        // 🛡️ ตรวจสอบรหัสผ่านก่อนลบ
+        if (!password) {
+            return res.status(400).json({ success: false, message: "กรุณาระบุรหัสผ่านเพื่อยืนยันการลบบัญชี" });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: "รหัสผ่านไม่ถูกต้อง" });
+        }
+
+        // 🛡️ ถ้าเป็นการตรวจสอบรหัสผ่านอย่างเดียว (Pre-check) ให้หยุดแค่นี้
+        if (req.body.verifyOnly) {
+            return res.status(200).json({ success: true, message: "รหัสผ่านถูกต้อง" });
         }
 
         // ลบ User ออกจากฐานข้อมูล
@@ -379,7 +396,7 @@ export const deleteAccount = async (req, res) => {
 // 🔑 14. รีเซ็ตรหัสผ่านตัวจริง (รับ Token จากอีเมล)
 export const resetPassword = async (req, res) => {
     try {
-        const { token } = req.params; 
+        const { token } = req.params;
         const { newPassword } = req.body;
 
         if (!token) return res.status(400).json({ success: false, message: "ไม่พบ Token สำหรับรีเซ็ตรหัสผ่าน" });
@@ -387,7 +404,7 @@ export const resetPassword = async (req, res) => {
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET_TOKEN);
         const user = await User.findById(decoded.id).select('+password');
-        
+
         if (!user) return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้งานนี้" });
 
         const salt = await bcrypt.genSalt(10);
@@ -407,7 +424,7 @@ export const getFriends = async (req, res) => {
         const me = await User.findById(myId);
 
         // หาคนที่อยู่ในทั้งรายชื่อ followers และ following ของเรา
-        const friendIds = me.following.filter(id => 
+        const friendIds = me.following.filter(id =>
             me.followers.includes(id)
         );
 
