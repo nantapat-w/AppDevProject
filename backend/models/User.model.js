@@ -32,6 +32,20 @@ const userSchema = new mongoose.Schema({
         type:String,
         match: [/^[0-9\-\s]{9,15}$/, 'เบอร์โทรศัพท์ไม่ถูกต้อง (ตัวเลข 9-15 หลัก)'],
     },
+    gender: {
+        type: String,
+        enum: ["ชาย", "หญิง", "อื่นๆ", null],
+        default: null
+    },
+    birthday: {
+        type: Date,
+        default: null
+    },
+    bio: {
+        type: String,
+        maxlength: [200, "Bio ไม่ควรเกิน 200 ตัวอักษร"],
+        default: ""
+    },
     role:{
         type:String,
         enum:["user" , "admin"  ,"official_store"],

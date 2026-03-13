@@ -183,12 +183,13 @@ export const refreshToken = async (req, res) => {
 // 🛠️ 7. อัปเดตโปรไฟล์
 export const updateProfile = async (req, res) => {
     try {
-        const { phoneNumber } = req.body;
+        const { phoneNumber, gender, birthday, bio } = req.body;
         let updateData = {};
 
-        if (phoneNumber !== undefined) {
-            updateData.phoneNumber = phoneNumber;
-        }
+        if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+        if (gender !== undefined) updateData.gender = gender;
+        if (birthday !== undefined) updateData.birthday = birthday;
+        if (bio !== undefined) updateData.bio = bio;
         if (req.file) {
             updateData.imageProfile = req.file.path; 
         }
@@ -340,6 +341,38 @@ export const forgotPassword = async (req, res) => {
         res.status(200).json({ success: true, message: "ส่งลิงก์รีเซ็ตไปที่อีเมลแล้ว" });
     } catch (error) {
         res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการส่งอีเมล: " + error.message });
+    }
+};
+
+// 🗑️ 14. ลบบัญชีผู้ใช้งาน
+export const deleteAccount = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้งาน" });
+        }
+
+        // ลบ User ออกจากฐานข้อมูล
+        await User.findByIdAndDelete(req.user._id);
+
+        // ล้างข้อมูลใน Redis (ดัก Error เพื่อไม่ให้กระทบการลบหลัก)
+        const refreshToken = req.cookies.refreshToken;
+        if (refreshToken) {
+            try {
+                await redis.del(`session:${req.user._id}`);
+            } catch (redisError) {
+                console.error("Redis session cleanup error:", redisError);
+            }
+        }
+
+        // ล้าง Cookie
+        const clearOptions = { httpOnly: true, secure: false, sameSite: "lax" };
+        res.clearCookie("accessToken", clearOptions);
+        res.clearCookie("refreshToken", clearOptions);
+
+        res.status(200).json({ success: true, message: "ลบบัญชีเรียบร้อยแล้ว ขอบคุณที่ใช้บริการเรา" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการลบบัญชี: " + error.message });
     }
 };
 

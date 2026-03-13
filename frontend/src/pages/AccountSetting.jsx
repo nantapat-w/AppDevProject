@@ -5,14 +5,18 @@ import {
   ArrowLeft, User, ShieldCheck, MapPin, CreditCard,
   ChevronRight, Save, Camera, Lock, Eye, EyeOff,
   Plus, Trash2, MapPinned, CreditCard as CardIcon,
-  X, Check
+  X, Check, LogOut, Store, Search, Bell, MessageSquare,
+  Settings, UserRound, Calendar, FileText
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import logo from '../assets/logo0.png';
+import axios from 'axios';
 
 const AccountSetting = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('profile');
-  
+
   // State for addresses
   const [addresses, setAddresses] = useState([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -66,7 +70,7 @@ const AccountSetting = () => {
       setLoading(true);
       const config = { withCredentials: true };
       let res;
-      
+
       if (editingAddress) {
         res = await axiosInstance.put(`/account-settings/addresses/${editingAddress._id}`, formData, config);
       } else {
@@ -138,6 +142,23 @@ const AccountSetting = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState(null); // { type: 'success'|'error', text }
 
+  // New state for dropdown and user from localStorage (for Navbar consistency)
+  const [showDropdown, setShowDropdown] = useState(false);
+  const currentUser = JSON.parse(localStorage.getItem('user'));
+
+  // Password change state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Account deletion state
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // โหลดข้อมูล user จริงจาก backend
   useEffect(() => {
     const fetchUser = async () => {
@@ -151,6 +172,9 @@ const AccountSetting = () => {
             email: u.email || '',
             phoneNumber: u.phoneNumber || '',
             imageProfile: u.imageProfile || null,
+            gender: u.gender || '',
+            birthday: u.birthday ? new Date(u.birthday).toISOString().split('T')[0] : '',
+            bio: u.bio || '',
           });
         }
       } catch (err) {
@@ -200,17 +224,25 @@ const AccountSetting = () => {
     }
   };
 
-  // บันทึกข้อมูลโปรไฟล์ (เบอร์โทร)
+  // บันทึกข้อมูลโปรไฟล์ (เบอร์โทร, เพศ, วันเกิด, bio)
   const handleSaveProfile = async () => {
     try {
       setSavingProfile(true);
-      const formData = new FormData();
-      if (user.phoneNumber) formData.append('phoneNumber', user.phoneNumber);
-      const res = await axiosInstance.put('/auth/profile', formData, {
+      const res = await axiosInstance.put('/auth/profile', {
+        phoneNumber: user.phoneNumber,
+        gender: user.gender,
+        birthday: user.birthday,
+        bio: user.bio
+      }, {
         withCredentials: true,
       });
       if (res.data.success) {
         setProfileMsg({ type: 'success', text: '✅ บันทึกข้อมูลสำเร็จ!' });
+        // Update localStorage if needed
+        if (currentUser) {
+          const updatedUser = { ...currentUser, phoneNumber: user.phoneNumber };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
       }
     } catch (err) {
       const msg = err.response?.data?.message || 'บันทึกไม่สำเร็จ กรุณาลองใหม่';
@@ -221,11 +253,78 @@ const AccountSetting = () => {
     }
   };
 
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setProfileMsg({ type: 'error', text: '❌ รหัสผ่านใหม่ไม่ตรงกัน' });
+      return;
+    }
+    if (passwordData.newPassword.length < 6) {
+      setProfileMsg({ type: 'error', text: '❌ รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร' });
+      return;
+    }
+
+    try {
+      setPasswordLoading(true);
+      const res = await axiosInstance.put('/auth/password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      }, { withCredentials: true });
+
+      if (res.data.success) {
+        setProfileMsg({ type: 'success', text: '✅ เปลี่ยนรหัสผ่านสำเร็จ!' });
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      }
+    } catch (err) {
+      setProfileMsg({ type: 'error', text: `❌ ${err.response?.data?.message || 'เกิดข้อผิดพลาด'}` });
+    } finally {
+      setPasswordLoading(false);
+      setTimeout(() => setProfileMsg(null), 4000);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    // Immediate browser confirmation as requested
+    const isConfirmed = window.confirm("⚠️ คุณต้องการลบบัญชีผู้ใช้งานอย่างถาวรใช่หรือไม่?\n\nข้อมูลโปรไฟล์ ร้านค้า และสินค้าทั้งหมดจะถูกลบและไม่สามารถกู้คืนได้");
+
+    if (!isConfirmed) return;
+
+    try {
+      setIsDeleting(true);
+      const res = await axiosInstance.delete('/auth/account', { withCredentials: true });
+      if (res.data.success) {
+        // Clear all session and cache
+        localStorage.clear();
+        sessionStorage.clear();
+        // Redirect to Home as requested
+        window.location.href = '/';
+      }
+    } catch (err) {
+      console.error('Account deletion error:', err);
+      const errorMsg = err.response?.data?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+      setProfileMsg({ type: 'error', text: `❌ ลบบัญชีไม่สำเร็จ: ${errorMsg}` });
+    } finally {
+      setIsDeleting(false);
+      setTimeout(() => setProfileMsg(null), 5000);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await axios.post('http://localhost:5000/api/auth/logout', {}, { withCredentials: true });
+      localStorage.removeItem('user');
+      navigate('/login');
+    } catch (error) {
+      console.error("Logout error", error);
+    }
+  };
+
   const tabs = [
     { id: 'profile', label: 'ข้อมูลส่วนตัว', icon: <User className="w-5 h-5" /> },
     { id: 'security', label: 'ความปลอดภัย', icon: <ShieldCheck className="w-5 h-5" /> },
     { id: 'address', label: 'ที่อยู่จัดส่ง', icon: <MapPin className="w-5 h-5" /> },
     { id: 'payment', label: 'ช่องทางชำระเงิน', icon: <CreditCard className="w-5 h-5" /> },
+    { id: 'advanced', label: 'การตั้งค่าขั้นสูง', icon: <Settings className="w-5 h-5" /> },
   ];
 
   const renderContent = () => {
@@ -254,9 +353,9 @@ const AccountSetting = () => {
                       {uploadingImage
                         ? <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-white" />
                         : <>
-                            <Camera className="w-8 h-8 text-white mb-1" />
-                            <span className="text-[10px] text-white font-bold uppercase tracking-wider">Change Photo</span>
-                          </>
+                          <Camera className="w-8 h-8 text-white mb-1" />
+                          <span className="text-[10px] text-white font-bold uppercase tracking-wider">Change Photo</span>
+                        </>
                       }
                     </div>
                   </div>
@@ -295,21 +394,68 @@ const AccountSetting = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">Username</label>
-                  <input type="text" value={user.username} readOnly className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none text-gray-400 cursor-not-allowed shadow-inner" />
+                  <div className="relative">
+                    <UserRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input type="text" value={user.username} readOnly className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl pl-12 pr-4 py-4 text-sm focus:outline-none text-gray-400 cursor-not-allowed shadow-inner" />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">Email Address</label>
-                  <input type="email" value={user.email} readOnly className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none text-gray-400 cursor-not-allowed shadow-inner" />
+                  <div className="relative">
+                    <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input type="email" value={user.email} readOnly className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl pl-12 pr-4 py-4 text-sm focus:outline-none text-gray-400 cursor-not-allowed shadow-inner" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">เบอร์โทรศัพท์</label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input
+                      type="text"
+                      value={user.phoneNumber}
+                      onChange={(e) => setUser(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                      placeholder="เช่น 081-234-5678"
+                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">เพศ</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <select
+                      value={user.gender}
+                      onChange={(e) => setUser(prev => ({ ...prev, gender: e.target.value }))}
+                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner appearance-none"
+                    >
+                      <option value="">เลือกเพศ</option>
+                      <option value="ชาย">ชาย</option>
+                      <option value="หญิง">หญิง</option>
+                      <option value="อื่นๆ">อื่นๆ</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">เบอร์โทรศัพท์</label>
-                  <input
-                    type="text"
-                    value={user.phoneNumber}
-                    onChange={(e) => setUser(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                    placeholder="เช่น 081-234-5678"
-                    className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner"
-                  />
+                  <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">วันเกิด</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input
+                      type="date"
+                      value={user.birthday}
+                      onChange={(e) => setUser(prev => ({ ...prev, birthday: e.target.value }))}
+                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">เกี่ยวกับฉัน (Bio)</label>
+                  <textarea
+                    value={user.bio}
+                    onChange={(e) => setUser(prev => ({ ...prev, bio: e.target.value }))}
+                    placeholder="เขียนอะไรบางอย่างเกี่ยวกับตัวคุณ..."
+                    rows="3"
+                    className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner resize-none"
+                  ></textarea>
                 </div>
               </div>
             )}
@@ -324,7 +470,12 @@ const AccountSetting = () => {
 
       case 'security':
         return (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+          <form onSubmit={handleUpdatePassword} className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+            {profileMsg && (
+              <div className={`px-4 py-3 rounded-xl text-sm font-medium ${profileMsg.type === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+                {profileMsg.text}
+              </div>
+            )}
             <div className="pb-4 border-b border-[#2a2a3e]">
               <h3 className="text-xl font-bold flex items-center gap-2"><Lock className="w-6 h-6 text-[#8b2cf5]" /> เปลี่ยนรหัสผ่าน</h3>
               <p className="text-sm text-gray-400 mt-2">เพื่อความปลอดภัยของบัญชี เราแนะนำให้คุณเปลี่ยนรหัสผ่านทุกๆ 3-6 เดือน</p>
@@ -334,31 +485,76 @@ const AccountSetting = () => {
               <div className="space-y-2">
                 <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">รหัสผ่านปัจจุบัน</label>
                 <div className="relative">
-                  <input type="password" placeholder="••••••••" className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition" />
-                  <button className="absolute right-4 top-4 text-gray-500 hover:text-white transition"><Eye className="w-5 h-5" /></button>
+                  <input
+                    type={showPasswords.current ? "text" : "password"}
+                    required
+                    value={passwordData.currentPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    placeholder="••••••••"
+                    className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                    className="absolute right-4 top-4 text-gray-500 hover:text-white transition"
+                  >
+                    {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">รหัสผ่านใหม่</label>
                 <div className="relative">
-                  <input type="password" placeholder="••••••••" className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#86efac] transition" />
+                  <input
+                    type={showPasswords.new ? "text" : "password"}
+                    required
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    placeholder="••••••••"
+                    className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                    className="absolute right-4 top-4 text-gray-500 hover:text-white transition"
+                  >
+                    {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
-                <p className="text-[10px] text-gray-500 mt-1">รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร มีทั้งตัวพิมพ์ใหญ่ และตัวเลข</p>
+                <p className="text-[10px] text-gray-500 mt-1">รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร</p>
               </div>
               <div className="space-y-2">
                 <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">ยืนยันรหัสผ่านใหม่</label>
                 <div className="relative">
-                  <input type="password" placeholder="••••••••" className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#86efac] transition" />
+                  <input
+                    type={showPasswords.confirm ? "text" : "password"}
+                    required
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    placeholder="••••••••"
+                    className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-[#8b2cf5] transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                    className="absolute right-4 top-4 text-gray-500 hover:text-white transition"
+                  >
+                    {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
             </div>
 
             <div className="pt-6">
-              <button className="px-8 py-4 bg-[#8b2cf5] text-white font-bold rounded-xl shadow-[0_8px_25px_rgba(139,44,245,0.4)] hover:scale-[1.02] active:scale-95 transition-all">
-                อัปเดตรหัสผ่าน
+              <button
+                type="submit"
+                disabled={passwordLoading}
+                className="px-8 py-4 bg-[#8b2cf5] text-white font-bold rounded-xl shadow-[0_8px_25px_rgba(139,44,245,0.4)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+              >
+                {passwordLoading ? 'กำลังอัปเดต...' : 'อัปเดตรหัสผ่าน'}
               </button>
             </div>
-          </div>
+          </form>
         );
       case 'address':
         return (
@@ -369,7 +565,7 @@ const AccountSetting = () => {
                 <p className="text-sm text-gray-400 mt-1">จัดการที่อยู่ของคุณเพื่อความรวดเร็วในการสั่งซื้อ</p>
               </div>
               {!isAdding && (
-                <button 
+                <button
                   onClick={() => { setIsAdding(true); setEditingAddress(null); setFormData(initialFormState); }}
                   className="p-2 bg-[#8b2cf5]/10 text-[#8b2cf5] border border-[#8b2cf5]/30 rounded-lg hover:bg-[#8b2cf5] hover:text-white transition"
                 >
@@ -386,95 +582,95 @@ const AccountSetting = () => {
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">ชื่อเรียกที่อยู่ (เช่น บ้าน, ที่ทำงาน)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={formData.label}
-                      onChange={(e) => setFormData({...formData, label: e.target.value})}
-                      placeholder="เช่น บ้านของฉัน" 
-                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner" 
+                      onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+                      placeholder="เช่น บ้านของฉัน"
+                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">ชื่อ-นามสกุล ผู้รับ</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={formData.fullName}
-                      onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner" 
+                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">เบอร์โทรศัพท์</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={formData.phoneNumber}
-                      onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner" 
+                      onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner"
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">ที่อยู่ (เลขที่บ้าน, ถนน, ซอย)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={formData.addressLine}
-                      onChange={(e) => setFormData({...formData, addressLine: e.target.value})}
-                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner" 
+                      onChange={(e) => setFormData({ ...formData, addressLine: e.target.value })}
+                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">แขวง / ตำบล</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={formData.subDistrict}
-                      onChange={(e) => setFormData({...formData, subDistrict: e.target.value})}
-                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner" 
+                      onChange={(e) => setFormData({ ...formData, subDistrict: e.target.value })}
+                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">เขต / อำเภอ</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={formData.district}
-                      onChange={(e) => setFormData({...formData, district: e.target.value})}
-                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner" 
+                      onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">จังหวัด</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={formData.province}
-                      onChange={(e) => setFormData({...formData, province: e.target.value})}
-                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner" 
+                      onChange={(e) => setFormData({ ...formData, province: e.target.value })}
+                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs text-gray-400 uppercase tracking-widest font-bold ml-1">รหัสไปรษณีย์</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={formData.zipCode}
-                      onChange={(e) => setFormData({...formData, zipCode: e.target.value})}
-                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner" 
+                      onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                      className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition shadow-inner"
                     />
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 pt-2">
-                  <button 
+                  <button
                     type="button"
-                    onClick={() => setFormData({...formData, isDefault: !formData.isDefault})}
+                    onClick={() => setFormData({ ...formData, isDefault: !formData.isDefault })}
                     className={`w-12 h-6 rounded-full relative transition-colors ${formData.isDefault ? 'bg-[#8b2cf5]' : 'bg-[#2a2a3e]'}`}
                   >
                     <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isDefault ? 'translate-x-6' : 'translate-x-0'}`}></div>
@@ -495,7 +691,7 @@ const AccountSetting = () => {
                   <div className="p-12 border-2 border-dashed border-[#2a2a3e] rounded-2xl flex flex-col items-center justify-center text-gray-500 gap-4">
                     <MapPin className="w-12 h-12 opacity-20" />
                     <p>ยังไม่มีที่อยู่ถูกจัดส่งถูกบันทึกไว้</p>
-                    <button 
+                    <button
                       onClick={() => setIsAdding(true)}
                       className="text-[#8b2cf5] font-bold hover:underline"
                     >
@@ -515,7 +711,7 @@ const AccountSetting = () => {
                             {addr.isDefault ? (
                               <span className="px-2 py-0.5 bg-[#8b2cf5]/20 text-[#8b2cf5] text-[10px] rounded uppercase font-bold border border-[#8b2cf5]/30">Default</span>
                             ) : (
-                              <button 
+                              <button
                                 onClick={() => handleSetDefault(addr._id)}
                                 className="text-[10px] text-gray-500 hover:text-[#8b2cf5] transition uppercase font-bold"
                               >
@@ -586,6 +782,55 @@ const AccountSetting = () => {
             </div>
           </div>
         );
+      case 'advanced':
+        return (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+            {profileMsg && (
+              <div className={`px-4 py-3 rounded-xl text-sm font-medium ${profileMsg.type === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+                {profileMsg.text}
+              </div>
+            )}
+            <div className="pb-4 border-b border-[#2a2a3e]">
+              <h3 className="text-xl font-bold flex items-center gap-2 text-red-500"><Settings className="w-6 h-6" /> การตั้งค่าขั้นสูง (Danger Zone)</h3>
+              <p className="text-sm text-gray-400 mt-2">พื้นที่นี้มีการดำเนินการที่มีความเสี่ยงสูง โปรดระมัดระวังก่อนดำเนินการใดๆ</p>
+            </div>
+
+            <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <Trash2 className="w-6 h-6 text-red-500" />
+                <h4 className="font-bold text-lg text-red-500">ลบบัญชีผู้ใช้งาน</h4>
+              </div>
+
+              <div className="space-y-3 text-sm text-gray-400 leading-relaxed">
+                <p className="font-bold text-gray-300">⚠️ รายละเอียดและเงื่อนไขการลบบัญชี:</p>
+                <ul className="list-disc ml-5 space-y-1">
+                  <li>ข้อมูลโปรไฟล์ รูปภาพ และข้อมูลส่วนตัวทั้งหมดจะถูกลบอย่างถาวร</li>
+                  <li>รายการสินค้าและร้านค้าของคุณจะถูกนำออกจากระบบ</li>
+                  <li>ประวัติการทำรายการและการสนทนาจะไม่สามารถเข้าถึงได้อีกต่อไป</li>
+                  <li>คุณจะไม่สามารถกลับมาใช้ชื่อผู้ใช้งาน (Username) เดิมได้</li>
+                  <li><span className="text-red-400 font-bold">การดำเนินการนี้ไม่สามารถย้อนกลับได้</span> โปรดแน่ใจก่อนทำการกดยืนยัน</li>
+                </ul>
+              </div>
+
+              <div className="pt-4 border-t border-red-500/10">
+                <p className="text-xs text-red-400/80 mb-6 italic">* เมื่อกดยืนยันแล้ว บัญชีของคุณจะถูกลบออกทันทีและไม่สามารถกู้คืนข้อมูลได้</p>
+
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting}
+                  className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-red-600 to-red-500 text-white font-black rounded-2xl shadow-[0_10px_30px_rgba(220,38,38,0.4)] hover:shadow-[0_15px_40px_rgba(220,38,38,0.5)] hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 uppercase tracking-wider"
+                >
+                  {isDeleting ? (
+                    <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> กำลังลบบัญชี...</>
+                  ) : (
+                    <><Trash2 className="w-6 h-6" /> ยืนยันการลบบัญชีถาวร</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -593,47 +838,129 @@ const AccountSetting = () => {
 
   return (
     <div className="min-h-screen bg-[#05050f] text-white font-sans pb-20">
-      {/* Navbar */}
-      <nav className="bg-[#0a0a16]/80 backdrop-blur-md border-b border-[#2a2a3e] px-4 py-4 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => navigate(-1)} className="p-2 bg-[#151522] rounded-full hover:bg-[#2a2a3e] transition text-gray-400 hover:text-white">
-              <ArrowLeft className="w-5 h-5" />
+
+      {/* 🟢 Navbar (Synced with Home) */}
+      <nav className="sticky top-0 z-50 bg-[#0a0a16] border-b border-[#2a2a3e] px-4 py-3 shadow-lg">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
+
+          <Link to="/" className="flex items-center gap-2 cursor-pointer w-fit">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#8b2cf5] to-[#4361ee] flex items-center justify-center shadow-[0_0_15px_rgba(139,44,245,0.4)]">
+              <img src={logo} alt="TradeApp Logo" className="w-full h-full object-cover" />
+            </div>
+            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">
+              Shoplify
+            </span>
+          </Link>
+
+          <div className="flex-1 max-w-3xl relative">
+            <input
+              type="text"
+              placeholder="ค้นหาสินค้า หรือ ร้านค้า..."
+              className="w-full bg-[#151522] border border-[#2a2a3e] rounded-md py-2.5 pl-5 pr-12 focus:outline-none focus:border-[#8b2cf5] transition-all text-sm placeholder-gray-500"
+            />
+            <button className="absolute right-2 top-1.5 p-1.5 bg-[#8b2cf5] rounded-md hover:bg-[#7220c7] transition">
+              <Search className="w-4 h-4 text-white" />
             </button>
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">Account Settings</h1>
+          </div>
+
+          <div className="flex items-center gap-5 w-auto justify-end">
+            <Link to="/shops" className="hidden md:flex items-center gap-2 text-gray-300 hover:text-[#8b2cf5] font-medium transition-colors mr-2">
+              <Store className="w-5 h-5" />
+              ร้านค้า
+            </Link>
+
+            <div className="relative cursor-pointer hover:text-[#8b2cf5] transition">
+              <Bell className="w-6 h-6 text-gray-300" />
+            </div>
+            <div className="relative cursor-pointer hover:text-[#8b2cf5] transition">
+              <MessageSquare className="w-6 h-6 text-gray-300" />
+            </div>
+            <div className="h-8 w-px bg-[#2a2a3e] mx-1"></div>
+
+            <div className="relative">
+              {currentUser ? (
+                <div
+                  className="flex items-center gap-2 cursor-pointer group"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                >
+                  <div className="w-9 h-9 rounded-full bg-[#151522] border-2 border-[#2a2a3e] flex items-center justify-center overflow-hidden group-hover:border-[#8b2cf5] transition-all">
+                    {currentUser.imageProfile ? (
+                      <img src={currentUser.imageProfile} alt="User" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                    )}
+                  </div>
+                  <span className="hidden sm:block text-sm font-medium text-gray-300 group-hover:text-white transition-colors truncate max-w-[100px]">
+                    {currentUser.username}
+                  </span>
+
+                  {showDropdown && (
+                    <div className="absolute right-0 top-12 w-48 bg-[#12121e] border border-[#2a2a3e] rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
+                      <div className="px-4 py-3 border-b border-[#2a2a3e] bg-[#0a0a16]">
+                        <p className="text-sm font-bold text-white truncate">{currentUser.username}</p>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">{currentUser.email}</p>
+                      </div>
+                      <div className="p-2">
+                        <Link to="/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#1c1c2b] hover:text-[#8b2cf5] rounded-lg transition-colors">
+                          <User className="w-4 h-4" /> โปรไฟล์ของฉัน
+                        </Link>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg transition-colors mt-1"
+                        >
+                          <LogOut className="w-4 h-4" /> ออกจากระบบ
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link to="/login" className="flex items-center gap-2 cursor-pointer hover:text-[#8b2cf5] transition group">
+                  <div className="w-9 h-9 rounded-full bg-[#151522] border-2 border-[#2a2a3e] flex items-center justify-center overflow-hidden group-hover:border-[#8b2cf5]">
+                    <User className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                  </div>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 mt-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="max-w-7xl mx-auto px-4 mt-12 pb-20">
 
+        {/* Title above the box */}
+        <div className="flex items-center gap-4 mb-8">
+          <button onClick={() => navigate(-1)} className="p-2.5 bg-[#12121e] border border-[#2a2a3e] rounded-xl hover:bg-[#1c1c2b] transition text-gray-400 hover:text-white group">
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">
+              Account Setting
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">จัดการข้อมูลส่วนตัว ความปลอดภัย และการตั้งค่าบัญชีของคุณ</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Sidebar Layout */}
-          <div className="lg:col-span-3 space-y-2">
-            <div className="bg-[#12121e] border border-[#2a2a3e] rounded-2xl overflow-hidden p-2">
+          <div className="lg:col-span-3">
+            <div className="bg-[#12121e] border border-[#2a2a3e] rounded-2xl overflow-hidden p-2 sticky top-24">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-4 px-6 py-4 rounded-xl text-sm font-bold transition-all ${activeTab === tab.id
-                      ? 'bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] text-white shadow-lg'
-                      : 'text-gray-500 hover:bg-[#1c1c2b] hover:text-white'
+                  className={`w-full flex items-center gap-4 px-6 py-4 rounded-xl text-sm font-bold transition-all mb-1 last:mb-0 ${activeTab === tab.id
+                    ? 'bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] text-white shadow-lg'
+                    : 'text-gray-500 hover:bg-[#1c1c2b] hover:text-white'
                     }`}
                 >
-                  {tab.icon}
+                  <span className={activeTab === tab.id ? 'text-white' : 'text-gray-500 group-hover:text-[#8b2cf5]'}>
+                    {tab.icon}
+                  </span>
                   {tab.label}
                   {activeTab === tab.id && <ChevronRight className="w-4 h-4 ml-auto" />}
                 </button>
               ))}
-            </div>
-
-            <div className="p-6 bg-[#0a0a16] border border-[#2a2a3e] rounded-2xl">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center"><Trash2 className="w-5 h-5 text-red-500" /></div>
-                <h4 className="font-bold text-red-500">Zone Danger</h4>
-              </div>
-              <p className="text-xs text-gray-500 mb-4">การลบบัญชีเป็นเรื่องละเอียดอ่อน ข้อมูลทั้งหมดของคุณจะหายไปอย่างถาวร</p>
-              <button className="w-full py-3 border border-red-500/30 text-red-500 rounded-xl text-xs font-bold hover:bg-red-500/10 transition">ลบบัญชีผู้ใช้งาน</button>
             </div>
           </div>
 
@@ -645,7 +972,6 @@ const AccountSetting = () => {
 
             {renderContent()}
           </div>
-
         </div>
       </div>
     </div>

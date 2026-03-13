@@ -4,7 +4,7 @@ import {
     updatePassword, addAddress, deleteAddress, 
     getUserProfile, forgotPassword, resetPassword,
     verifyEmail, refreshToken, toggleFollow,
-    getFriends // 🟢 เติมชื่อน้องคนนี้เข้าไปในลิสต์ import ด้วยครับ!
+    getFriends, deleteAccount // 🟢 เติมชื่อน้องคนนี้เข้าไปในลิสต์ import ด้วยครับ!
 } from "../controllers/auth.controller.js";
 import { uploadCloud } from "../utils/cloudinary.js";
 import { protectRoute } from "../middlewares/auth.middleware.js"; 
@@ -25,6 +25,7 @@ router.put("/profile", protectRoute, uploadCloud.single("imageProfile"), updateP
 router.put("/password", protectRoute, updatePassword);
 router.post("/address", protectRoute, addAddress);
 router.delete("/address/:addressId", protectRoute, deleteAddress);
+router.delete("/account", protectRoute, deleteAccount); // 🗑️ ลบบัญชีผู้ใช้งาน
 // เพิ่มบรรทัดนี้ลงไป (ต้องอยู่หลัง middleware protect หรือ verifyToken นะครับ)
 // เปลี่ยนจาก protect เป็น protectRoute ให้ตรงตามที่นายน้อย import ไว้ข้างบนครับ
 router.get("/friends", protectRoute, getFriends);
