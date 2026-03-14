@@ -254,16 +254,23 @@ export const deleteAddress = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
-// 🕵️ 10. ดูโปรไฟล์คนอื่น (ฉบับอัปเกรด: ดึงข้อมูลผู้ติดตาม/กำลังติดตามออกมาด้วย)
+// 🕵️ 10. ดูโปรไฟล์คนอื่น (ฉบับอัปเกรด: ดึงข้อมูลผู้ติดตาม/กำลังติดตาม + สินค้าในคลัง)
 export const getUserProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id)
-            .select("-address -password") // ไม่ส่งรหัสผ่านและที่อยู่
-            .populate("followers", "username imageProfile") // ดึงข้อมูลผู้ติดตาม (ชื่อ+รูป)
-            .populate("following", "username imageProfile"); // ดึงข้อมูลกำลังติดตาม (ชื่อ+รูป)
+        const [user, products] = await Promise.all([
+            User.findById(req.params.id)
+                .select("-address -password")
+                .populate("followers", "username imageProfile")
+                .populate("following", "username imageProfile"),
+            (await import("../models/Product.model.js")).default
+                .find({ ownerId: req.params.id })
+                .select("productName images price status")
+                .sort({ createdAt: -1 })
+                .limit(20)
+        ]);
 
         if (!user) return res.status(404).json({ success: false, message: "ไม่พบข้อมูลผู้ใช้งาน" });
-        res.status(200).json({ success: true, data: user });
+        res.status(200).json({ success: true, data: { ...user.toObject(), products } });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

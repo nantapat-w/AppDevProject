@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, MessageSquare, Bell, User, Star, Repeat, Users, PackageOpen, LogOut, Store } from 'lucide-react';
+import { Search, ShoppingBag, MessageSquare, Bell, User, Star, Repeat, Users, PackageOpen, LogOut, Store, Shield } from 'lucide-react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo0.png';
@@ -8,25 +8,29 @@ const Home = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState(null);
   
   const [showDropdown, setShowDropdown] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/products');
-        if (response.data.success) {
-          setProducts(response.data.data);
-        }
+        const [prodRes, settRes] = await Promise.all([
+          axios.get('http://localhost:5000/api/products'),
+          axios.get('http://localhost:5000/api/settings')
+        ]);
+        
+        if (prodRes.data.success) setProducts(prodRes.data.data);
+        if (settRes.data.success) setSettings(settRes.data.data);
       } catch (error) {
-        console.error("Error fetching products:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    fetchData();
   }, []);
 
   const handleLogout = async () => {
@@ -102,6 +106,14 @@ const Home = () => {
                         <p className="text-xs text-gray-500 truncate mt-0.5">{currentUser.email}</p>
                       </div>
                       <div className="p-2">
+                        {currentUser.role === "admin" && (
+                          <Link
+                            to="/admin"
+                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#1c1c2b] hover:text-[#8b2cf5] rounded-lg transition-colors"
+                          >
+                            <Shield className="w-4 h-4" /> Admin Dashboard
+                          </Link>
+                        )}
                         <Link to="/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#1c1c2b] hover:text-[#8b2cf5] rounded-lg transition-colors">
                           <User className="w-4 h-4" /> โปรไฟล์ของฉัน
                         </Link>
@@ -133,12 +145,16 @@ const Home = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[300px]">
           <div className="md:col-span-2 bg-gradient-to-br from-[#1c0d33] to-[#0a1128] rounded-xl border border-[#2a2a3e] p-8 flex flex-col justify-center relative overflow-hidden group cursor-pointer">
             <div className="absolute top-0 right-0 w-72 h-72 bg-[#8b2cf5] opacity-20 blur-[100px] rounded-full group-hover:opacity-40 transition-opacity duration-500"></div>
-            <span className="text-xs font-bold tracking-wider text-[#8b2cf5] mb-2">PROMOTION</span>
+            <span className="text-xs font-bold tracking-wider text-[#8b2cf5] mb-2 uppercase">PROMOTION</span>
             <h1 className="text-4xl font-bold mb-3 z-10 leading-tight">
-              เทศกาลแลกของ <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">ลดค่าธรรมเนียม 50%</span>
+              {settings?.bannerTitle || "เทศกาลแลกของ"} <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">
+                {settings?.bannerDiscount || "ลดค่าธรรมเนียม 50%"}
+              </span>
             </h1>
-            <p className="text-gray-400 mb-6 z-10">ใช้โค้ด "TRADE50" เมื่อทำการยืนยันการแลกเปลี่ยน</p>
+            <p className="text-gray-400 mb-6 z-10">
+              {settings?.bannerDescription || 'ใช้โค้ด "TRADE50" เมื่อทำการยืนยันการแลกเปลี่ยน'}
+            </p>
             <button className="w-fit bg-[#8b2cf5] text-white font-medium py-2.5 px-8 rounded-md hover:bg-[#7220c7] transition z-10">
               ดูรายละเอียด
             </button>
