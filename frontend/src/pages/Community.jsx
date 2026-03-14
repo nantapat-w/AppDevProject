@@ -40,8 +40,16 @@ function timeAgo(dateStr) {
 // ---------- sub-components ----------
 function Avatar({ name, src, size = 9 }) {
     const initials = name ? name.charAt(0).toUpperCase() : '?';
-    return src ? (
-        <img src={src} alt={name} className={`w-${size} h-${size} rounded-full object-cover ring-2 ring-[#8b2cf5]/40`} />
+    // หาก src ไม่มีค่า ให้เป็น null หากมีค่าให้ใช้ค่าเดิม (Cloudinary URL มักเป็น Full Path อยู่แล้ว)
+    const imageUrl = src || null;
+
+    return imageUrl ? (
+        <img
+            src={imageUrl}
+            alt={name}
+            className={`w-${size} h-${size} rounded-full object-cover ring-2 ring-[#8b2cf5]/40`}
+            onError={(e) => { e.target.onerror = null; e.target.src = ""; }}
+        />
     ) : (
         <div className={`w-${size} h-${size} rounded-full bg-gradient-to-br from-[#8b2cf5] to-[#4361ee] flex items-center justify-center text-white font-bold text-sm ring-2 ring-[#8b2cf5]/40`}>
             {initials}
@@ -56,6 +64,28 @@ const Community = () => {
 
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [userData, setUserData] = useState(currentUser); // เก็บข้อมูลผู้ใช้ที่เป็นปัจจุบันที่สุด
+
+    // ฟังก์ชันดึงโปรไฟล์ล่าสุดจาก Server เพื่ออัปเดตรูปมุมขวาบน
+    const fetchMyProfile = async () => {
+        if (!currentUser) return;
+        try {
+            const targetId = currentUser.id || currentUser._id;
+            const res = await axios.get(`${API}/auth/profile/${targetId}`, { withCredentials: true });
+            if (res.data.success) {
+                setUserData(res.data.data);
+                // อัปเดต LocalStorage ให้มีข้อมูลรูปภาพล่าสุดเสมอ
+                localStorage.setItem('user', JSON.stringify(res.data.data));
+            }
+        } catch (err) {
+            console.error("Fetch profile error", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchMyProfile();
+    }, []);
+
     const [activeFilter, setActiveFilter] = useState('ALL');
     const [searchText, setSearchText] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
@@ -318,7 +348,7 @@ const Community = () => {
                         <div className="relative">
                             {currentUser ? (
                                 <div className="flex items-center gap-2 cursor-pointer group" onClick={() => { setShowDropdown(!showDropdown); setShowNotifications(false); }}>
-                                    <Avatar name={currentUser.username} src={currentUser.imageProfile} size={9} />
+                                    <Avatar name={userData?.username} src={userData?.imageProfile} size={9} />
                                     <span className="hidden sm:block text-sm font-medium text-gray-300 group-hover:text-white transition-colors truncate max-w-[100px]">{currentUser.username}</span>
                                     {showDropdown && (
                                         <div className="absolute right-0 top-12 w-48 bg-[#12121e] border border-[#2a2a3e] rounded-xl shadow-2xl overflow-hidden z-50">

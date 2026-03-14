@@ -4,11 +4,11 @@ import Community from "../models/Community.model.js";
 export const createPost = async (req, res) => {
     try {
         const { content, postType, referencedProduct, tags } = req.body;//ลบ imageออกเพื่อให้backend รับรูปโดยตรง
-        
+
         // ดึง URL รูปภาพจาก Cloudinary ที่ Multer จัดการให้
         let imageUrls = [];
         if (req.files) {
-            imageUrls = req.files.map(file => file.path); 
+            imageUrls = req.files.map(file => file.path);
         }
 
         const newPost = await Community.create({
@@ -38,8 +38,12 @@ export const getAllPosts = async (req, res) => {
         if (search) query.content = { $regex: search, $options: "i" };
 
         const posts = await Community.find(query)
-            .populate("author", "username imageProfile") // ✅ แก้เป็น imageProfile แล้ว
+            .populate("author", "username imageProfile")
             .populate("referencedProduct", "productName price images")
+            .populate({
+                path: "comments.user",
+                select: "username imageProfile"
+            })
             .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, count: posts.length, data: posts });
@@ -69,7 +73,7 @@ export const getPostById = async (req, res) => {
 export const updatePost = async (req, res) => {
     try {
         const { content, images, tags } = req.body;
-        
+
         let post = await Community.findById(req.params.id);
         if (!post) return res.status(404).json({ success: false, message: "ไม่พบโพสต์" });
 
@@ -129,7 +133,13 @@ export const commentOnPost = async (req, res) => {
         post.comments.push(newComment);
         await post.save();
 
-        res.status(201).json({ success: true, message: "คอมเมนต์สำเร็จ", data: post.comments });
+        // ดึงข้อมูล User ของคอมเมนต์ที่เพิ่งสร้างเพื่อให้แสดงชื่อ/รูปทันที
+        const updatedPost = await Community.findById(post._id).populate({
+            path: "comments.user",
+            select: "username imageProfile"
+        });
+
+        res.status(201).json({ success: true, message: "คอมเมนต์สำเร็จ", data: updatedPost.comments });
     } catch (error) {
         res.status(500).json({ success: false, message: `Server Error : ${error.message}` });
     }
@@ -147,8 +157,8 @@ export const deleteComment = async (req, res) => {
         if (!comment) return res.status(404).json({ success: false, message: "ไม่พบคอมเมนต์" });
 
         // เช็คสิทธิ์: คนเขียนคอมเมนต์, เจ้าของโพสต์, หรือแอดมิน ลบได้
-        if (comment.user.toString() !== req.user._id.toString() && 
-            post.author.toString() !== req.user._id.toString() && 
+        if (comment.user.toString() !== req.user._id.toString() &&
+            post.author.toString() !== req.user._id.toString() &&
             req.user.role !== 'admin') {
             return res.status(403).json({ success: false, message: "ไม่มีสิทธิ์ลบคอมเมนต์นี้" });
         }
