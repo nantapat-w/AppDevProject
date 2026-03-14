@@ -16,8 +16,11 @@ import Payment from './pages/Payment';
 import AccountSetting from './pages/AccountSetting';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import OrderHistory from './pages/OrderHistory';
+
 
 function App() {
+
   return (
     <BrowserRouter>
       <Routes>
@@ -42,7 +45,9 @@ function App() {
         <Route path="/account-settings" element={<AccountSetting />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/orders" element={<OrderHistory />} />
       </Routes>
+
     </BrowserRouter>
   );
 }

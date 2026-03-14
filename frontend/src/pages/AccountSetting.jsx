@@ -6,7 +6,7 @@ import {
   ChevronRight, Save, Camera, Lock, Eye, EyeOff,
   Plus, Trash2, MapPinned, CreditCard as CardIcon,
   X, Check, LogOut, Store, Search, Bell, MessageSquare,
-  Settings, UserRound, Calendar, FileText
+  Settings, UserRound, Calendar, FileText, ClipboardList, Package, Clock, ExternalLink
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import logo from '../assets/logo0.png';
@@ -22,6 +22,8 @@ const AccountSetting = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [loading, setLoading] = useState(false);
+
+
 
   // Form Data for Address
   const initialFormState = {
@@ -49,6 +51,8 @@ const AccountSetting = () => {
       fetchAddresses();
     }
   }, [activeTab]);
+
+
 
   const fetchAddresses = async () => {
     try {
@@ -346,7 +350,8 @@ const AccountSetting = () => {
     { id: 'profile', label: 'ข้อมูลส่วนตัว', icon: <User className="w-5 h-5" /> },
     { id: 'security', label: 'ความปลอดภัย', icon: <ShieldCheck className="w-5 h-5" /> },
     { id: 'address', label: 'ที่อยู่จัดส่ง', icon: <MapPin className="w-5 h-5" /> },
-    { id: 'payment', label: 'ช่องทางชำระเงิน', icon: <CreditCard className="w-5 h-5" /> },
+
+
     { id: 'advanced', label: 'การตั้งค่าขั้นสูง', icon: <Settings className="w-5 h-5" /> },
   ];
 
@@ -772,53 +777,9 @@ const AccountSetting = () => {
             )}
           </div>
         );
-      case 'payment':
-        return (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="flex justify-between items-center pb-4 border-b border-[#2a2a3e]">
-              <div>
-                <h3 className="text-xl font-bold flex items-center gap-2"><CreditCard className="w-6 h-6 text-[#8b2cf5]" /> ข้อมูลการชำระเงิน</h3>
-                <p className="text-sm text-gray-400 mt-1">บันทึกบัตรเครดิต/เดบิตเพื่อความสะดวกรวดเร็ว</p>
-              </div>
-              <button className="flex items-center gap-2 px-4 py-2 bg-[#8b2cf5] text-white text-xs font-bold rounded-lg hover:opacity-90 transition">
-                <Plus className="w-4 h-4" /> เพิ่มบัตรใหม่
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="aspect-[1.586/1] w-full max-w-[350px] bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between border border-white/10 shadow-2xl group transition-transform hover:-translate-y-1">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#8b2cf5] opacity-10 blur-[50px] rounded-full"></div>
-                <div className="flex justify-between items-start">
-                  <div className="w-10 h-10 bg-gradient-to-tr from-yellow-200 to-yellow-600 rounded-lg flex items-center justify-center">
-                    <div className="w-6 h-4 border border-black/20 rounded-sm"></div>
-                  </div>
-                  <div className="text-white font-bold italic text-lg opacity-80 uppercase">VISA</div>
-                </div>
-                <div className="space-y-4">
-                  <div className="text-lg font-mono tracking-[0.2em] text-white">•••• •••• •••• 4242</div>
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <div className="text-[8px] uppercase text-gray-500">Card Holder</div>
-                      <div className="text-xs font-medium uppercase tracking-wider">NANTAPAT W.</div>
-                    </div>
-                    <div>
-                      <div className="text-[8px] uppercase text-gray-500">Expires</div>
-                      <div className="text-xs font-medium uppercase tracking-wider">12/26</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="aspect-[1.586/1] w-full max-w-[350px] bg-[#0a0a16] border-2 border-dashed border-[#2a2a3e] rounded-2xl flex flex-col items-center justify-center gap-3 text-gray-500 hover:border-[#8b2cf5] hover:text-[#8b2cf5] transition cursor-pointer group">
-                <div className="w-12 h-12 rounded-full border border-current flex items-center justify-center transition-transform group-hover:scale-110">
-                  <Plus className="w-6 h-6" />
-                </div>
-                <span className="font-bold text-sm">Add New Payment Method</span>
-              </div>
-            </div>
-          </div>
-        );
       case 'advanced':
+
+
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="pb-4 border-b border-[#2a2a3e]">
@@ -976,6 +937,8 @@ const AccountSetting = () => {
                           <User className="w-4 h-4" /> โปรไฟล์ของฉัน
                         </Link>
                         <button
+
+
                           onClick={handleLogout}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg transition-colors mt-1"
                         >
