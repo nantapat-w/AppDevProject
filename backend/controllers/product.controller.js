@@ -1,7 +1,6 @@
 import User from "../models/User.model.js";
 import Product from "../models/Product.model.js";
-import fs from "fs";
-import path from "path";
+import cloudinary from "../utils/cloudinary.js";
 
 // ระบบสร้างสินค้าสำหรับลงขาย หรือ เทรด
 export const createProduct = async(req,res) => {
@@ -12,10 +11,10 @@ export const createProduct = async(req,res) => {
             tags, shopId 
         } = req.body;
 
-        // 🟢 เช็คว่ามีการส่งไฟล์รูปมาไหม ถ้ามีให้สร้างลิงก์รูปภาพ
+        // 🟢 Cloudinary: req.file.path คือ URL เต็มที่ได้จาก Cloudinary โดยตรง
         let imageUrls = [];
         if (req.file) {
-            imageUrls.push(`http://localhost:5000/uploads/${req.file.filename}`);
+            imageUrls.push(req.file.path);
         }
 
         const newProduct = await Product.create({
@@ -109,18 +108,19 @@ export const updateProduct = async(req,res) => {
         let updateData = { ...req.body };
         
         if (req.file) {
-            // 1. ลบรูปเก่าออกก่อน (ถ้ามี)
+            // 1. ลบรูปเก่าออกจาก Cloudinary ก่อน (ถ้ามี)
             if (product.images && product.images.length > 0) {
-                product.images.forEach(imgUrl => {
-                    const filename = imgUrl.split('/').pop();
-                    const filePath = path.join(process.cwd(), "uploads", filename);
-                    if (fs.existsSync(filePath)) {
-                        fs.unlinkSync(filePath);
-                    }
-                });
+                for (const imgUrl of product.images) {
+                    // ดึง public_id จาก Cloudinary URL (ส่วน path ก่อน .ext)
+                    const parts = imgUrl.split('/');
+                    const filename = parts[parts.length - 1];
+                    const folder = parts[parts.length - 2];
+                    const publicId = `${folder}/${filename.split('.')[0]}`;
+                    await cloudinary.uploader.destroy(publicId).catch(() => {}); // ลบ (ถ้า error ก็ข้ามได้)
+                }
             }
-            // 2. ใส่รูปใหม่เข้าไป
-            updateData.images = [`http://localhost:5000/uploads/${req.file.filename}`];
+            // 2. ใส่รูปใหม่ (URL จาก Cloudinary)
+            updateData.images = [req.file.path];
         }
 
         product = await Product.findByIdAndUpdate(req.params.id, updateData,
@@ -148,18 +148,15 @@ export const deleteProduct = async (req, res) => {
             return res.status(403).json({ success: false, message: "คุณไม่มีสิทธิ์ลบสินค้านี้" });
         }
 
-        // 3. 🗑️ ลบรูปออกจากเซิร์ฟเวอร์ด้วย (ถ้ามี)
+        // 3. 🗑️ ลบรูปออกจาก Cloudinary (ถ้ามี)
         if (product.images && product.images.length > 0) {
-            product.images.forEach(imgUrl => {
-                // แยกชื่อไฟล์ออกมาจาก URL (ตัวอย่าง: http://localhost:5000/uploads/123.jpg)
-                const filename = imgUrl.split('/').pop();
-                const filePath = path.join(process.cwd(), "uploads", filename);
-                
-                if (fs.existsSync(filePath)) {
-                    fs.unlinkSync(filePath);
-                    console.log(`Deleted file: ${filePath}`);
-                }
-            });
+            for (const imgUrl of product.images) {
+                const parts = imgUrl.split('/');
+                const filename = parts[parts.length - 1];
+                const folder = parts[parts.length - 2];
+                const publicId = `${folder}/${filename.split('.')[0]}`;
+                await cloudinary.uploader.destroy(publicId).catch(() => {});
+            }
         }
 
         // 4. สั่งประหาร! (ลบทิ้งออกจาก Database)

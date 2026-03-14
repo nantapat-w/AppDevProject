@@ -10,14 +10,24 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// 🟢 ตั้งค่า Multer ให้อัปโหลดขึ้น Cloudinary
-const storage = new CloudinaryStorage({
+// 🟢 Storage สำหรับ Shop Logos, Profile Images
+const storageGeneral = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "AppDevShopLogos", // ชื่อโฟลเดอร์ที่จะไปโผล่ในเว็บ Cloudinary
-    allowed_formats: ["jpg", "png", "jpeg", "webp"], 
+    folder: "AppDevShopLogos",
+    allowed_formats: ["jpg", "png", "jpeg", "webp"],
   },
 });
 
-export const uploadCloud = multer({ storage });
+// 🟢 Storage สำหรับ Product Images
+const storageProducts = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "AppDevProducts",
+    allowed_formats: ["jpg", "png", "jpeg", "webp"],
+  },
+});
+
+export const uploadCloud = multer({ storage: storageGeneral });
+export const uploadProductCloud = multer({ storage: storageProducts });
 export default cloudinary;

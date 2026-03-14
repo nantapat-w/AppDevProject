@@ -11,6 +11,13 @@ const Home = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [siteSettings, setSiteSettings] = useState(null);
+
+  // 🛠️ Helper: รองรับทั้ง relative path (/uploads/xxx) และ absolute URL (http://...)
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return `http://localhost:5000${path}`;
+  };
   
   const [showDropdown, setShowDropdown] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('user'));
@@ -127,13 +134,21 @@ const Home = () => {
                   </div>
                   {item.images && item.images.length > 0 ? (
                     <img 
-                      src={item.images[0]} 
+                      src={getImageUrl(item.images[0])} 
                       alt={item.productName} 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
                     />
-                  ) : (
+                  ) : null}
+                  <div
+                    className="w-full h-full items-center justify-center"
+                    style={{ display: (item.images && item.images.length > 0) ? 'none' : 'flex' }}
+                  >
                     <PackageOpen className="w-12 h-12 text-[#2a2a3e]" />
-                  )}
+                  </div>
                 </div>
 
                 <div className="p-3 flex flex-col flex-grow">
