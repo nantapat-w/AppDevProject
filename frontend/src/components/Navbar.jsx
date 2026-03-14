@@ -1,19 +1,93 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Bell, MessageSquare, User, LogOut, ClipboardList, Settings, Store, Shield } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logo from '../assets/logo0.png';
 
+const API = 'http://localhost:5000/api';
+
+function timeAgo(dateStr) {
+  const diff = (Date.now() - new Date(dateStr)) / 1000;
+  if (diff < 60) return 'เมื่อกี้';
+  if (diff < 3600) return `${Math.floor(diff / 60)} นาทีที่แล้ว`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} ชั่วโมงที่แล้ว`;
+  return `${Math.floor(diff / 86400)} วันที่แล้ว`;
+}
+
+function Avatar({ name, src, size = 9 }) {
+  const initials = name ? name.charAt(0).toUpperCase() : '?';
+  return src ? (
+    <img
+      src={src}
+      alt={name}
+      className={`w-${size} h-${size} rounded-full object-cover ring-2 ring-[#8b2cf5]/40`}
+      onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
+    />
+  ) : (
+    <div className={`w-${size} h-${size} rounded-full bg-gradient-to-br from-[#8b2cf5] to-[#4361ee] flex items-center justify-center text-white font-bold text-sm ring-2 ring-[#8b2cf5]/40`}>
+      {initials}
+    </div>
+  );
+}
+
 const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
   const navigate = useNavigate();
+  const notifRef = useRef(null);
+
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const fetchNotifications = async () => {
+    if (!currentUser) return;
+    try {
+      const res = await axios.get(`${API}/notifications`, { withCredentials: true });
+      if (res.data.success) {
+        setNotifications(res.data.data);
+        setUnreadCount(res.data.data.filter(n => !n.isRead).length);
+      }
+    } catch (err) {
+      console.error('fetch notifications error', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  // ปิด panel เมื่อคลิกนอก
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleToggleNotifications = async () => {
+    const next = !showNotifications;
+    setShowNotifications(next);
+    setShowDropdown(false);
+    if (next && unreadCount > 0) {
+      try {
+        await axios.put(`${API}/notifications/mark-read`, {}, { withCredentials: true });
+        setUnreadCount(0);
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      } catch (error) {
+        console.error('Mark as read error:', error);
+      }
+    }
+  };
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:5000/api/auth/logout', {}, { withCredentials: true });
+      await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
       localStorage.removeItem('user');
       navigate('/login');
     } catch (error) {
-      console.error("Logout error", error);
+      console.error('Logout error', error);
     }
   };
 
@@ -48,19 +122,67 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
             ร้านค้า
           </Link>
 
-          <div className="relative cursor-pointer hover:text-[#8b2cf5] transition">
-            <Bell className="w-6 h-6 text-gray-300" />
+          {/* 🔔 Notification Bell */}
+          <div className="relative" ref={notifRef}>
+            <div
+              className="relative cursor-pointer hover:text-[#8b2cf5] transition"
+              onClick={handleToggleNotifications}
+            >
+              <Bell className="w-6 h-6 text-gray-300 hover:text-[#8b2cf5] transition" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-bounce">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </div>
+
+            {showNotifications && (
+              <div className="absolute right-0 top-12 w-80 bg-[#12121e] border border-[#2a2a3e] rounded-xl shadow-2xl overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-[#2a2a3e] bg-[#0a0a16] flex justify-between items-center">
+                  <h3 className="font-bold text-white">การแจ้งเตือน</h3>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map(notif => (
+                      <div
+                        key={notif._id}
+                        onClick={() => { navigate(`/profile/${notif.sender._id}`); setShowNotifications(false); }}
+                        className={`p-3 border-b border-[#2a2a3e]/50 hover:bg-[#1a1a2e] transition cursor-pointer flex gap-3 ${!notif.isRead ? 'bg-[#1c1c2b]/60' : ''}`}
+                      >
+                        <Avatar name={notif.sender?.username} src={notif.sender?.imageProfile} size={10} />
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-200 leading-tight">
+                            <span className="font-bold text-white">{notif.sender?.username}</span>{' '}
+                            {notif.message || 'ได้เริ่มติดตามคุณ'}
+                          </p>
+                          <p className="text-xs text-[#8b2cf5] mt-1">{timeAgo(notif.createdAt)}</p>
+                        </div>
+                        {!notif.isRead && <div className="w-2 h-2 rounded-full bg-[#8b2cf5] mt-2 shrink-0" />}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 flex flex-col items-center justify-center text-center">
+                      <Bell className="w-10 h-10 text-[#2a2a3e] mb-3" />
+                      <p className="text-sm text-gray-400">ไม่มีการแจ้งเตือนใหม่</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="relative cursor-pointer hover:text-[#8b2cf5] transition">
-            <MessageSquare className="w-6 h-6 text-gray-300" />
-          </div>
+
+          {/* 💬 Chat */}
+          <Link to="/chat" className="relative cursor-pointer hover:text-[#8b2cf5] transition">
+            <MessageSquare className="w-6 h-6 text-gray-300 hover:text-[#8b2cf5] transition" />
+          </Link>
+
           <div className="h-8 w-px bg-[#2a2a3e] mx-1"></div>
           
           <div className="relative">
             {currentUser ? (
               <div 
                 className="flex items-center gap-2 cursor-pointer group"
-                onClick={() => setShowDropdown(!showDropdown)}
+                onClick={() => { setShowDropdown(!showDropdown); setShowNotifications(false); }}
               >
                 <div className={`w-9 h-9 rounded-full bg-[#151522] border-2 ${currentUser.role === 'admin' ? 'border-[#8b2cf5]' : 'border-[#2a2a3e]'} flex items-center justify-center overflow-hidden group-hover:border-[#8b2cf5] transition-all`}>
                    <User className={`w-5 h-5 ${currentUser.role === 'admin' ? 'text-[#8b2cf5]' : 'text-gray-400'} group-hover:text-white`} />
