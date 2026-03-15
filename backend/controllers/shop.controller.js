@@ -20,7 +20,7 @@ export const createShop = async (req, res) => {
         // 🌟 ดึง URL ของรูปจาก Cloudinary
         let logoUrl = "";
         if (req.file) {
-            logoUrl = req.file.path; 
+            logoUrl = req.file.path;
         }
 
         // 🌟 สร้างรหัสร้านค้า 6 หลักที่ไม่ซ้ำ
@@ -40,7 +40,7 @@ export const createShop = async (req, res) => {
             shopCode, // บันทึกรหัสร้านค้า 6 หลัก
             shopDescription: shopDescription || "ยินดีต้อนรับสู่ร้านค้าของเรา",
             shopLogo: logoUrl, // บันทึก URL ลง MongoDB
-            shopBanner: shopBanner || "" 
+            shopBanner: shopBanner || ""
         });
 
         res.status(201).json({ success: true, message: "เปิดร้านค้าสำเร็จ!", data: newShop });
@@ -66,7 +66,7 @@ export const getShopById = async (req, res) => {
     try {
         const shop = await Shop.findById(req.params.id)
             .populate("ownerId", "username imageProfile trustScore email");
-            
+
         if (!shop) {
             return res.status(404).json({ success: false, message: "ไม่พบร้านค้านี้" });
         }
@@ -87,15 +87,15 @@ export const updateShop = async (req, res) => {
         }
 
         let updateData = { ...req.body };
-        
+
         // ถ้ามีการอัปโหลดรูปใหม่
         if (req.file) {
             updateData.shopLogo = req.file.path;
         }
 
-        shop = await Shop.findByIdAndUpdate(req.params.id, updateData, { 
-            new: true, 
-            runValidators: true 
+        shop = await Shop.findByIdAndUpdate(req.params.id, updateData, {
+            new: true,
+            runValidators: true
         });
 
         res.status(200).json({ success: true, message: "อัปเดตข้อมูลร้านค้าสำเร็จ", data: shop });
@@ -112,6 +112,23 @@ export const getMyShop = async (req, res) => {
             return res.status(200).json({ success: true, hasShop: false });
         }
         res.status(200).json({ success: true, hasShop: true, data: shop });
+    } catch (error) {
+        res.status(500).json({ success: false, message: `Server Error: ${error.message}` });
+    }
+};
+
+// 🗑️ 6. ลบร้านค้า (เฉพาะเจ้าของร้าน)
+export const deleteShop = async (req, res) => {
+    try {
+        const shop = await Shop.findById(req.params.id);
+        if (!shop) return res.status(404).json({ success: false, message: "ไม่พบร้านค้านี้" });
+
+        if (shop.ownerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: "คุณไม่มีสิทธิ์ลบร้านค้านี้" });
+        }
+
+        await Shop.findByIdAndDelete(req.params.id);
+        res.status(200).json({ success: true, message: "ลบร้านค้าเรียบร้อยแล้ว" });
     } catch (error) {
         res.status(500).json({ success: false, message: `Server Error: ${error.message}` });
     }
