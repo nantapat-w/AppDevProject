@@ -43,7 +43,12 @@ const Home = () => {
       try {
         const response = await axios.get('http://localhost:5000/api/products');
         if (response.data.success) {
-          setProducts(response.data.data);
+          //เรียงลำดับจากวันที่สร้างล่าสุด (ใหม่สุดอยู่บนสุด)
+          const sortedProducts = response.data.data.sort((a, b) => {
+            return new Date(b.createdAt) - new Date(a.createdAt);
+          });
+          //ตัดเอามาแค่ 8 ชิ้นแรก (2 แถว แถวละ 4 ชิ้น)
+          setProducts(sortedProducts.slice(0, 8));
         }
       } catch (error) {
         console.error("Error fetching products:", error);

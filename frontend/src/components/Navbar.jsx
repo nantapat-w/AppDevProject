@@ -35,6 +35,13 @@ function Avatar({ name, src, size = 9 }) {
 
 const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const handleSearch = (e) => {
+    e.preventDefault();
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setShowDropdown(false);
+    
+  };
   const notifRef = useRef(null);
   const dropdownRef = useRef(null);
 
@@ -113,16 +120,22 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
           </span>
         </Link>
 
-        <div className="flex-1 max-w-3xl relative">
+        <form onSubmit={handleSearch} className="flex-1 max-w-3xl relative">
+
           <input
             type="text"
-            placeholder="ค้นหาสินค้า หรือ ร้านค้า..."
-            className="w-full bg-[#151522] border border-[#2a2a3e] rounded-md py-2.5 pl-5 pr-12 focus:outline-none focus:border-[#8b2cf5] transition-all text-sm placeholder-gray-500"
+            value={searchQuery} // 2. ผูกค่าในช่องนี้ให้ตรงกับตัวแปร searchQuery
+            onChange={(e) => setSearchQuery(e.target.value)} // 3. ทุกครั้งที่พิมพ์อักษรใหม่ ให้ไปอัปเดตค่าใน State
+            placeholder="ค้นหาสินค้า..."
+            className="w-full bg-[#151522] border border-[#2a2a3e] rounded-md py-2.5 pl-5 pr-12 focus:outline-none focus:border-[#8b2cf5] transition-all text-sm placeholder-gray-500 text-white"
           />
-          <button className="absolute right-2 top-1.5 p-1.5 bg-[#8b2cf5] rounded-md hover:bg-[#7220c7] transition">
+
+          {/* 4. เติม type="submit" ให้ปุ่ม เพื่อให้ฟอร์มรู้ว่านี่คือปุ่มสำหรับตกลง/ค้นหา */}
+          <button type="submit" className="absolute right-2 top-1.5 p-1.5 bg-[#8b2cf5] rounded-md hover:bg-[#7220c7] transition">
             <Search className="w-4 h-4 text-white" />
           </button>
-        </div>
+
+        </form>
 
         <div className="flex items-center gap-5 w-auto justify-end">
 
