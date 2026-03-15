@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Users, Settings, Ticket, Shield, Trash2, AlertCircle, CheckCircle2, Search, User, X, Plus } from 'lucide-react';
+import { ArrowLeft, Users, Settings, Ticket, Shield, Trash2, AlertCircle, CheckCircle2, Search, User, X, Plus, AlertTriangle, ShoppingBag, MessageSquare, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
@@ -26,6 +26,12 @@ const AdminDashboard = () => {
     const [editingUser, setEditingUser] = useState(null);
     const [isCouponEditModalOpen, setIsCouponEditModalOpen] = useState(false);
     const [editingCoupon, setEditingCoupon] = useState(null);
+    
+    // Clear data state
+    const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+    const [clearConfirmText, setClearConfirmText] = useState('');
+    const [clearing, setClearing] = useState(false);
+    const [clearResult, setClearResult] = useState(null);
     
     const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
     const userId = currentUser?._id;
@@ -183,6 +189,23 @@ const AdminDashboard = () => {
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleClearAllData = async () => {
+        if (clearConfirmText !== 'CONFIRM') return;
+        setClearing(true);
+        try {
+            const res = await axios.delete('http://localhost:5000/api/admin/clear-data', { withCredentials: true });
+            if (res.data.success) {
+                setClearResult(res.data.deleted);
+                setClearConfirmText('');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('เกิดข้อผิดพลาด: ' + (err.response?.data?.message || err.message));
+        } finally {
+            setClearing(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#05050f] text-white font-sans pb-10">
             <Navbar 
@@ -226,6 +249,13 @@ const AdminDashboard = () => {
                     >
                         <Ticket className="w-4 h-4" /> Coupons
                         {activeTab === 'coupons' && <div className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]"></div>}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('danger')}
+                        className={`pb-4 text-sm font-bold transition-all relative flex items-center gap-2 ${activeTab === 'danger' ? 'text-red-500' : 'text-gray-500 hover:text-red-400'}`}
+                    >
+                        <AlertTriangle className="w-4 h-4" /> Danger Zone
+                        {activeTab === 'danger' && <div className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-red-500"></div>}
                     </button>
                 </div>
 
@@ -498,6 +528,39 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 )}
+
+                {activeTab === 'danger' && (
+                    <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="bg-[#0a0a16] border border-red-500/30 rounded-2xl p-8 shadow-xl shadow-red-500/5">
+                            <h2 className="text-2xl font-bold mb-2 flex items-center gap-3 text-red-400">
+                                <AlertTriangle className="w-7 h-7" /> Danger Zone
+                            </h2>
+                            <p className="text-gray-500 text-sm mb-8">การกระทำเหล่านี้ไม่สามารถย้อนกลับได้ กรุณาใช้ด้วยความระมัดระวัง</p>
+
+                            <div className="border border-red-500/20 rounded-xl p-6 bg-red-500/5">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <h3 className="font-bold text-red-400 mb-1">ล้างข้อมูลทั้งหมด</h3>
+                                        <p className="text-sm text-gray-400 mb-3">ลบข้อมูลต่อไปนี้ออกจากระบบทั้งหมด:</p>
+                                        <ul className="space-y-1.5 text-sm text-gray-400">
+                                            <li className="flex items-center gap-2"><ShoppingBag className="w-4 h-4 text-red-400/70" /> ร้านค้าทั้งหมด</li>
+                                            <li className="flex items-center gap-2"><Package className="w-4 h-4 text-red-400/70" /> สินค้าทั้งหมด</li>
+                                            <li className="flex items-center gap-2"><MessageSquare className="w-4 h-4 text-red-400/70" /> โพสต์และคอมเมนต์ใน Community ทั้งหมด</li>
+                                            <li className="flex items-center gap-2"><Trash2 className="w-4 h-4 text-red-400/70" /> คำสั่งซื้อและรายการแลกเปลี่ยนทั้งหมด</li>
+                                        </ul>
+                                        <p className="text-xs text-gray-600 mt-3">* ข้อมูล User, Coupon และ Site Settings จะยังคงอยู่</p>
+                                    </div>
+                                    <button
+                                        onClick={() => { setIsClearModalOpen(true); setClearResult(null); setClearConfirmText(''); }}
+                                        className="shrink-0 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition flex items-center gap-2"
+                                    >
+                                        <Trash2 className="w-4 h-4" /> Clear Data
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
           {/* Modal: สร้างคูปอง */}
       {isModalOpen && (
@@ -731,6 +794,69 @@ const AdminDashboard = () => {
                 {saving ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Clear All Data */}
+      {isClearModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0a0a16] border border-red-500/40 rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-red-400 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" /> ยืนยันการล้างข้อมูล
+              </h3>
+              <button onClick={() => { setIsClearModalOpen(false); setClearResult(null); }} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+            </div>
+
+            {clearResult ? (
+              <div className="space-y-4">
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                  <p className="text-green-400 font-bold mb-3 flex items-center gap-2"><CheckCircle2 className="w-5 h-5" /> ล้างข้อมูลสำเร็จ!</p>
+                  <ul className="space-y-1 text-sm text-gray-300">
+                    <li className="flex justify-between"><span>ร้านค้า</span><span className="font-mono text-red-400">{clearResult.shops} รายการ</span></li>
+                    <li className="flex justify-between"><span>สินค้า</span><span className="font-mono text-red-400">{clearResult.products} รายการ</span></li>
+                    <li className="flex justify-between"><span>โพสต์ Community</span><span className="font-mono text-red-400">{clearResult.communityPosts} รายการ</span></li>
+                    <li className="flex justify-between"><span>คำสั่งซื้อ</span><span className="font-mono text-red-400">{clearResult.orders} รายการ</span></li>
+                    <li className="flex justify-between"><span>การแลกเปลี่ยน</span><span className="font-mono text-red-400">{clearResult.trades} รายการ</span></li>
+                  </ul>
+                </div>
+                <button
+                  onClick={() => setIsClearModalOpen(false)}
+                  className="w-full py-3 bg-[#1c1c2b] text-white font-bold rounded-xl hover:bg-[#2a2a3e] transition"
+                >
+                  ปิด
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-sm text-gray-300">
+                  <p className="font-semibold text-red-400 mb-2">⚠️ คำเตือน: การดำเนินการนี้ไม่สามารถย้อนกลับได้!</p>
+                  <p>จะทำการลบ <strong>ร้านค้า, สินค้า, โพสต์, คอมเมนต์, ออเดอร์</strong> และ <strong>การแลกเปลี่ยน</strong> ทั้งหมดออกจากระบบ</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-300">พิมพ์ <span className="font-mono font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">CONFIRM</span> เพื่อยืนยัน</label>
+                  <input
+                    type="text"
+                    value={clearConfirmText}
+                    onChange={(e) => setClearConfirmText(e.target.value)}
+                    placeholder="พิมพ์ CONFIRM"
+                    className="w-full bg-[#12121e] border border-red-500/30 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition text-white placeholder-gray-600"
+                  />
+                </div>
+                <button
+                  onClick={handleClearAllData}
+                  disabled={clearConfirmText !== 'CONFIRM' || clearing}
+                  className="w-full py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {clearing ? (
+                    <><div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white"></div> กำลังล้างข้อมูล...</>
+                  ) : (
+                    <><Trash2 className="w-4 h-4" /> ล้างข้อมูลทั้งหมด</>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

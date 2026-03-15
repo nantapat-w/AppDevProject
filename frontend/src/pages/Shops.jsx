@@ -1,15 +1,30 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Plus, ArrowLeft, Store, Star, MapPin, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, Plus, ArrowLeft, Store, Star, MapPin, X, Trash2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
 
 const Shops = () => {
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [myShop, setMyShop] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   const currentUser = JSON.parse(localStorage.getItem('user'));
+  const isAdmin = currentUser?.role === 'admin';
+
+  const handleAdminDeleteShop = async (e, shopId, shopName) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm(`ลบร้านค้า "${shopName}" ออกจากระบบ? \nสินค้าทั้งหมดในร้านจะถูกลบด้วย!`)) return;
+    try {
+      await axiosInstance.delete(`/shops/${shopId}`);
+      setShops(prev => prev.filter(s => s._id !== shopId));
+    } catch (err) {
+      alert(err.response?.data?.message || 'ลบไม่สำเร็จ');
+    }
+  };
 
   useEffect(() => {
     const fetchShops = async () => {
@@ -139,44 +154,54 @@ const Shops = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredShops.map((shop) => (
-                  // 🟢 เปลี่ยนจาก div เป็น Link และส่งไปที่ URL ร้านค้านั้นๆ
-                  <Link
-                    key={shop._id}
-                    to={`/shops/${shop._id}`}
-                    className="block bg-[#12121e] rounded-xl border border-[#2a2a3e] p-5 hover:border-[#8b2cf5] transition-all cursor-pointer group hover:shadow-[0_0_20px_rgba(139,44,245,0.1)]"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="w-16 h-16 rounded-full bg-[#1c1c2b] border border-[#2a2a3e] flex-shrink-0 overflow-hidden group-hover:border-[#8b2cf5] transition-colors">
-                        {shop.shopLogo ? (
-                          <img src={shop.shopLogo} alt={shop.shopName} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-500 bg-gradient-to-tr from-[#1c1c2b] to-[#2a2a3e]">
-                            {shop.shopName?.charAt(0) || 'S'}
-                          </div>
-                        )}
-                      </div>
+                  <div key={shop._id} className="relative group">
+                    <Link
+                      to={`/shops/${shop._id}`}
+                      className="block bg-[#12121e] rounded-xl border border-[#2a2a3e] p-5 hover:border-[#8b2cf5] transition-all cursor-pointer hover:shadow-[0_0_20px_rgba(139,44,245,0.1)]"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-16 h-16 rounded-full bg-[#1c1c2b] border border-[#2a2a3e] flex-shrink-0 overflow-hidden group-hover:border-[#8b2cf5] transition-colors">
+                          {shop.shopLogo ? (
+                            <img src={shop.shopLogo} alt={shop.shopName} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-500 bg-gradient-to-tr from-[#1c1c2b] to-[#2a2a3e]">
+                              {shop.shopName?.charAt(0) || 'S'}
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-white group-hover:text-[#8b2cf5] transition-colors line-clamp-1">
-                          {shop.shopName}
-                        </h3>
-                        <p className="text-xs text-gray-400 line-clamp-2 mt-1">
-                          {shop.shopDescription || 'ไม่มีคำอธิบายร้านค้า'}
-                        </p>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-white group-hover:text-[#8b2cf5] transition-colors line-clamp-1">
+                            {shop.shopName}
+                          </h3>
+                          <p className="text-xs text-gray-400 line-clamp-2 mt-1">
+                            {shop.shopDescription || 'ไม่มีคำอธิบายร้านค้า'}
+                          </p>
 
-                        <div className="flex items-center gap-4 mt-3">
-                          <div className="flex items-center gap-1 text-xs text-gray-400">
-                            <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                            <span>{shop.rating || '5.0'}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-gray-400">
-                            <MapPin className="w-3.5 h-3.5" />
-                            <span>{shop.location || 'ออนไลน์'}</span>
+                          <div className="flex items-center gap-4 mt-3">
+                            <div className="flex items-center gap-1 text-xs text-gray-400">
+                              <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                              <span>{shop.rating || '5.0'}</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-gray-400">
+                              <MapPin className="w-3.5 h-3.5" />
+                              <span>{shop.location || 'ออนไลน์'}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </Link>
+                    </Link>
+                    {/* 🗑️ ปุ่มลบสำหรับ Admin */}
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => handleAdminDeleteShop(e, shop._id, shop.shopName)}
+                        className="absolute top-3 right-3 p-2 bg-red-500/10 hover:bg-red-500 border border-red-500/30 hover:border-red-500 text-red-400 hover:text-white rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        title="ลบร้านค้า (Admin)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             )}

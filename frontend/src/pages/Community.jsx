@@ -564,6 +564,7 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
     const badgeClass = TYPE_BADGE_COLORS[post.postType] || TYPE_BADGE_COLORS.GENERAL;
     const label = POST_TYPE_LABELS[post.postType]?.label || post.postType;
     const isMe = String(currentUser?.id || currentUser?._id) === String(post.author?._id);
+    const isAdmin = currentUser?.role === 'admin';
     const isTradeRelated = ["TRADE_OFFER", "FINDING_ITEM"].includes(post.postType);
 
     const handleChatClick = (e, type, overrideUser) => {
@@ -616,7 +617,7 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
                         {post.tags?.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{post.tags.map((t, i) => (<span key={i} className="text-[10px] text-[#8b2cf5] bg-[#8b2cf5]/10 rounded px-1.5 py-0.5">#{t}</span>))}</div>}
                     </div>
                 </div>
-                {isMe && (
+                {(isMe || isAdmin) && (
                     <button onClick={() => onDeletePost(post._id)} className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-all" title="ลบโพสต์">
                         <Trash2 className="w-4 h-4" />
                     </button>
@@ -687,7 +688,7 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
                             {post.comments.map(comment => {
                                 const isCommentOwner = String(currentUser?.id || currentUser?._id) === String(comment.user?._id);
                                 const isPostOwner = isMe;
-                                const canDelete = isCommentOwner || isPostOwner;
+                                const canDelete = isCommentOwner || isPostOwner || isAdmin;
                                 const isCommentMenuOpen = showCommentMenu === comment._id;
                                 const isCommentAuthorFollowing = isFollowing; // Assuming isFollowing passed to PostCard applies to the post author, not comment author. Need to adjust if comment author's follow status is needed.
 
