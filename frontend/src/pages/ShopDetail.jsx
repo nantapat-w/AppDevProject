@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Store, Star, MapPin, Plus, Package, X, Upload, Image as ImageIcon, Trash2, ShieldCheck, Calendar, Hash, MessageCircle, UserCheck, Clock, Pencil, AlertTriangle } from 'lucide-react';
-import axios from 'axios';
 import { axiosInstance } from '../utils/axios';
 
 const ShopDetail = () => {
@@ -50,7 +49,7 @@ const ShopDetail = () => {
     const fetchShopData = async () => {
       try {
         // 1. ดึงข้อมูลร้านค้า
-        const shopRes = await axios.get(`http://localhost:5000/api/shops/${id}`);
+        const shopRes = await axiosInstance.get(`/shops/${id}`);
         if (shopRes.data.success || shopRes.data) {
           const shopData = shopRes.data.data || shopRes.data;
           setShop(shopData);
@@ -59,7 +58,7 @@ const ShopDetail = () => {
         }
 
         // 2. ดึงข้อมูลสินค้าของร้านนี้
-        const productRes = await axios.get(`http://localhost:5000/api/products/shop/${id}`);
+        const productRes = await axiosInstance.get(`/products/shop/${id}`);
         if (productRes.data.success) {
           setProducts(productRes.data.data);
         }
@@ -106,9 +105,8 @@ const ShopDetail = () => {
     }
 
     try {
-      const res = await axios.post(`http://localhost:5000/api/products`, formData, {
+      const res = await axiosInstance.post(`/products`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        withCredentials: true
       });
 
       if (res.data.success) {
@@ -126,9 +124,7 @@ const ShopDetail = () => {
     if (!window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบสินค้านี้?')) return;
 
     try {
-      const res = await axios.delete(`http://localhost:5000/api/products/${productId}`, {
-        withCredentials: true
-      });
+      const res = await axiosInstance.delete(`/products/${productId}`);
 
       if (res.data.success) {
         setProducts(products.filter(p => p._id !== productId));
@@ -154,9 +150,8 @@ const ShopDetail = () => {
     }
 
     try {
-      const res = await axios.put(`http://localhost:5000/api/shops/${id}`, formData, {
+      const res = await axiosInstance.put(`/shops/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        withCredentials: true
       });
 
       if (res.data.success) {

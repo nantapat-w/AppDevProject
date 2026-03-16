@@ -145,7 +145,7 @@ const ProductDetail = () => {
                    </div>
                 </div>
                 {product.shopId && (
-                  <Link to={`/shops/${product.shopId}`} className="text-gray-400 hover:text-white transition">
+                  <Link to={`/shops/${product.shopId._id || product.shopId}`} className="text-gray-400 hover:text-white transition">
                     <ChevronRight className="w-6 h-6" />
                   </Link>
                 )}
@@ -180,7 +180,9 @@ const ProductDetail = () => {
           </div>
           
           {!isOwner && product.tradeType !== 'SELL_ONLY' && (
-            <button className="w-full py-4 bg-[#0a0a16] border-2 border-dashed border-[#8b2cf5]/50 hover:border-[#8b2cf5] hover:bg-[#8b2cf5]/5 text-[#8b2cf5] rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3">
+            <button 
+               onClick={handleChatWithShop}
+               className="w-full py-4 bg-[#0a0a16] border-2 border-dashed border-[#8b2cf5]/50 hover:border-[#8b2cf5] hover:bg-[#8b2cf5]/5 text-[#8b2cf5] rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3">
                <Repeat className="w-6 h-6" /> ยื่นข้อเสนอแลกเปลี่ยน (TRADE)
             </button>
           )}
