@@ -26,6 +26,8 @@ const Login = () => {
 
       if (response.data.success) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('accessToken', response.data.accessToken);
+        localStorage.setItem('refreshToken', response.data.refreshToken);
         navigate('/');
       }
     } catch (error) {

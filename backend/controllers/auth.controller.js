@@ -92,7 +92,9 @@ export const login = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            user: { id: user._id, username: user.username, email: user.email, role: user.role }
+            user: { id: user._id, username: user.username, email: user.email, role: user.role },
+            accessToken,
+            refreshToken
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -180,7 +182,8 @@ export const refreshToken = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "ต่ออายุเซสชั่นสำเร็จ"
+            message: "ต่ออายุเซสชั่นสำเร็จ",
+            accessToken: tokens.accessToken
         });
     } catch (error) {
         res.status(401).json({ success: false, message: "Refresh Token หมดอายุหรือผิดพลาด" });

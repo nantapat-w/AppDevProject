@@ -6,10 +6,12 @@ import {
     PackageSearch, Sparkles, PackageOpen, Check, Camera, Video, Trash2,
     MoreHorizontal, Pencil
 } from 'lucide-react';
-import { axiosInstance } from '../utils/axios';
+import { axiosInstance, getImageUrl } from '../utils/axios';
+
 
 // ---------- utils ----------
-const API = '/api'; // ไม่จำเป็นต้องมี Full URL แล้วเพราะใช้ axiosInstance
+const API = ''; // ใช้ axiosInstance ไม่ต้องมี /api แล้ว
+
 
 
 const POST_TYPE_LABELS = {
@@ -38,8 +40,8 @@ function timeAgo(dateStr) {
 // ---------- sub-components ----------
 function Avatar({ name, src, size = 9 }) {
     const initials = name ? name.charAt(0).toUpperCase() : '?';
-    // หาก src ไม่มีค่า ให้เป็น null หากมีค่าให้ใช้ค่าเดิม (Cloudinary URL มักเป็น Full Path อยู่แล้ว)
-    const imageUrl = src || null;
+    const imageUrl = getImageUrl(src);
+
 
     return imageUrl ? (
         <img
@@ -59,7 +61,17 @@ function Avatar({ name, src, size = 9 }) {
 const Community = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const currentUser = JSON.parse(localStorage.getItem('user'));
+    const getSafeUser = () => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (!userStr || userStr === 'undefined') return null;
+            return JSON.parse(userStr);
+        } catch (e) {
+            return null;
+        }
+    };
+    const currentUser = getSafeUser();
+
 
     const [posts, setPosts] = useState([]);
     const [userData, setUserData] = useState(currentUser); // ใช้เก็บข้อมูลโปรไฟล์ล่าสุด
@@ -71,7 +83,8 @@ const Community = () => {
         if (!currentUser) return;
         try {
             const targetId = currentUser.id || currentUser._id;
-            const res = await axios.get(`${API}/auth/profile/${targetId}`, { withCredentials: true });
+            const res = await axiosInstance.get(`${API}/auth/profile/${targetId}`);
+
             if (res.data.success) {
                 setUserData(res.data.data);
                 // อัปเดต LocalStorage ให้มีข้อมูลรูปภาพล่าสุดเสมอ
@@ -111,7 +124,8 @@ const Community = () => {
             const params = {};
             if (activeFilter !== 'ALL') params.postType = activeFilter;
             if (searchText.trim()) params.search = searchText.trim();
-            const res = await axios.get(`${API}/community`, { params, withCredentials: true });
+            const res = await axiosInstance.get(`${API}/community`, { params });
+
             if (res.data.success) setPosts(res.data.data);
         } catch (err) {
             console.error('fetch posts error', err);
@@ -123,7 +137,8 @@ const Community = () => {
     const fetchFriends = async () => {
         if (!currentUser) return;
         try {
-            const res = await axios.get(`${API}/auth/friends`, { withCredentials: true });
+            const res = await axiosInstance.get(`${API}/auth/friends`);
+
             if (res.data.success) {
                 setFriends(res.data.data);
             }
@@ -135,7 +150,8 @@ const Community = () => {
     const fetchNotifications = async () => {
         if (!currentUser) return;
         try {
-            const res = await axios.get(`${API}/notifications`, { withCredentials: true });
+            const res = await axiosInstance.get(`${API}/notifications`);
+
             if (res.data.success) {
                 setNotifications(res.data.data);
                 setUnreadCount(res.data.data.filter(n => !n.isRead).length);
@@ -189,7 +205,8 @@ const Community = () => {
         setShowDropdown(false);
         if (!showNotifications && unreadCount > 0) {
             try {
-                await axios.put(`${API}/notifications/mark-read`, {}, { withCredentials: true });
+                await axiosInstance.put(`${API}/notifications/mark-read`, {});
+
                 setUnreadCount(0);
                 setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             } catch (error) {
@@ -201,7 +218,8 @@ const Community = () => {
     const handleLike = async (postId) => {
         if (!currentUser) { navigate('/login'); return; }
         try {
-            const res = await axios.put(`${API}/community/${postId}/like`, {}, { withCredentials: true });
+            const res = await axiosInstance.put(`${API}/community/${postId}/like`, {});
+
             if (res.data.success) {
                 setPosts(prev => prev.map(p => {
                     if (p._id !== postId) return p;
@@ -216,7 +234,8 @@ const Community = () => {
     const handleComment = async (postId, text) => {
         if (!currentUser) { navigate('/login'); return; }
         try {
-            const res = await axios.post(`${API}/community/${postId}/comment`, { text }, { withCredentials: true });
+            const res = await axiosInstance.post(`${API}/community/${postId}/comment`, { text });
+
             if (res.data.success) {
                 setPosts(prev => prev.map(p => p._id === postId ? { ...p, comments: res.data.data } : p));
             }
@@ -226,7 +245,8 @@ const Community = () => {
     const handleDeleteComment = async (postId, commentId) => {
         if (!window.confirm('ต้องการลบคอมเมนต์นี้ใช่หรือไม่?')) return;
         try {
-            const res = await axios.delete(`${API}/community/${postId}/comment/${commentId}`, { withCredentials: true });
+            const res = await axiosInstance.delete(`${API}/community/${postId}/comment/${commentId}`);
+
             if (res.data.success) {
                 setPosts(prev => prev.map(p => p._id === postId ? { ...p, comments: res.data.data } : p));
             }
@@ -236,7 +256,8 @@ const Community = () => {
     const handleDeletePost = async (postId) => {
         if (!window.confirm('ต้องการลบโพสต์นี้ใช่หรือไม่?')) return;
         try {
-            const res = await axios.delete(`${API}/community/${postId}`, { withCredentials: true });
+            const res = await axiosInstance.delete(`${API}/community/${postId}`);
+
             if (res.data.success) {
                 setPosts(prev => prev.filter(p => p._id !== postId));
             }
@@ -255,8 +276,7 @@ const Community = () => {
                 editData.newImages.forEach(img => formData.append('images', img));
             }
 
-            const res = await axios.put(`${API}/community/${postId}`, formData, {
-                withCredentials: true,
+            const res = await axiosInstance.put(`${API}/community/${postId}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             if (res.data.success) {
@@ -324,8 +344,7 @@ const Community = () => {
                 formData.append('video', video);
             }
 
-            const res = await axios.post(`${API}/community`, formData, {
-                withCredentials: true,
+            const res = await axiosInstance.post(`${API}/community`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
@@ -348,6 +367,8 @@ const Community = () => {
             await axiosInstance.post('/auth/logout', {});
 
             localStorage.removeItem('user');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
             navigate('/login');
         } catch (err) {
             console.error('logout error', err);
@@ -661,12 +682,13 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
 
     // Combine video and images for gallery
     const mediaItems = [];
-    if (post.video) mediaItems.push({ type: 'video', url: post.video.startsWith('http') ? post.video : `https://appdevproject-4.onrender.com${post.video}` });
+    if (post.video) mediaItems.push({ type: 'video', url: getImageUrl(post.video) });
     if (post.images?.length > 0) {
         post.images.forEach(img => {
-            mediaItems.push({ type: 'image', url: img.startsWith('http') ? img : `https://appdevproject-4.onrender.com${img}` });
+            mediaItems.push({ type: 'image', url: getImageUrl(img) });
         });
     }
+
 
 
     const postDate = new Date(post.createdAt);
@@ -724,7 +746,8 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
                 </div>
             )}
 
-            {post.referencedProduct && (<div className="mx-4 mb-3 flex items-center gap-3 bg-[#1c0d33] border border-[#8b2cf5]/20 rounded-xl p-3"><div className="w-12 h-12 rounded-lg bg-[#2a1a4e] flex items-center justify-center shrink-0">{post.referencedProduct.images?.[0] ? <img src={post.referencedProduct.images[0]} className="w-full h-full object-cover" /> : <Image className="w-5 h-5 text-[#8b2cf5]" />}</div><div><p className="text-xs text-[#8b2cf5] font-semibold mb-0.5">สินค้าที่แนบ</p><p className="text-sm text-white font-medium line-clamp-1">{post.referencedProduct.productName}</p>{post.referencedProduct.price && <p className="text-xs text-gray-400">฿{post.referencedProduct.price.toLocaleString()}</p>}</div></div>)}
+            {post.referencedProduct && (<div className="mx-4 mb-3 flex items-center gap-3 bg-[#1c0d33] border border-[#8b2cf5]/20 rounded-xl p-3"><div className="w-12 h-12 rounded-lg bg-[#2a1a4e] flex items-center justify-center shrink-0">{post.referencedProduct.images?.[0] ? <img src={getImageUrl(post.referencedProduct.images[0])} className="w-full h-full object-cover" /> : <Image className="w-5 h-5 text-[#8b2cf5]" />}</div><div><p className="text-xs text-[#8b2cf5] font-semibold mb-0.5">สินค้าที่แนบ</p><p className="text-sm text-white font-medium line-clamp-1">{post.referencedProduct.productName}</p>{post.referencedProduct.price && <p className="text-xs text-gray-400">฿{post.referencedProduct.price.toLocaleString()}</p>}</div></div>)}
+
             <div className="flex items-center gap-4 px-4 py-3 border-t border-[#1c1c2b]">
                 {/* ปุ่ม Like */}
                 <button

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, User, Star, Package, ShieldCheck, MapPin, Settings, Edit3, Clock, Repeat, Users, MessageCircle, Plus, Check, MessageSquare } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { axiosInstance } from '../utils/axios';
+import { axiosInstance, getImageUrl } from '../utils/axios';
+
 import { PostCard, POST_TYPE_LABELS } from './Community';
 import Navbar from '../components/Navbar';
 
@@ -181,7 +182,8 @@ const Profile = () => {
             <div className="relative z-10 shrink-0">
               <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-[#0a0a16] border-4 border-[#12121e] flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(139,44,245,0.3)]">
                 {profileData.imageProfile ? (
-                  <img src={profileData.imageProfile} alt="profile" className="w-full h-full object-cover" />
+                  <img src={getImageUrl(profileData.imageProfile)} alt="profile" className="w-full h-full object-cover" />
+
                 ) : (
                   <User className="w-12 h-12 md:w-16 md:h-16 text-gray-500" />
                 )}

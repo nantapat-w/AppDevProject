@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { axiosInstance } from '../utils/axios';
+import { axiosInstance, getImageUrl } from '../utils/axios';
+
 import {
   ArrowLeft, User, ShieldCheck, MapPin, CreditCard,
   ChevronRight, Save, Camera, Lock, Eye, EyeOff,
@@ -17,6 +18,8 @@ import Navbar from '../components/Navbar';
 const AccountSetting = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  console.log('[AccountSetting] Component rendered. Current Path:', location.pathname);
+  console.log('[AccountSetting] Initial localStorage user:', localStorage.getItem('user'));
   const [activeTab, setActiveTab] = useState('profile');
 
   // State for addresses
@@ -152,8 +155,19 @@ const AccountSetting = () => {
   const [profileMsg, setProfileMsg] = useState(null); // { type: 'success'|'error', text }
 
   // New state for dropdown and user from localStorage (for Navbar consistency)
-  const currentUser = JSON.parse(localStorage.getItem('user'));
+  const getSafeUser = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr || userStr === 'undefined') return null;
+      return JSON.parse(userStr);
+    } catch (e) {
+       return null;
+    }
+  };
+
+  const currentUser = getSafeUser();
   const [userData, setUserData] = useState(currentUser);
+
   const [showDropdown, setShowDropdown] = useState(false);
 
   // Password change state
@@ -177,6 +191,7 @@ const AccountSetting = () => {
       try {
         setProfileLoading(true);
         const res = await axiosInstance.get('/auth/me');
+        console.log('[AccountSetting] fetchUser /auth/me status:', res.status, 'success:', res.data.success);
         if (res.data.success) {
           const u = res.data.data;
           setUser({
@@ -327,6 +342,8 @@ const AccountSetting = () => {
       if (res.data.success) {
         // Clear all session and cache
         localStorage.clear();
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         sessionStorage.clear();
         // Redirect to Home as requested
         window.location.href = '/';
@@ -343,9 +360,13 @@ const AccountSetting = () => {
   };
 
   const handleLogout = async () => {
+    console.log('[AccountSetting] handleLogout triggered');
     try {
       await axiosInstance.post('/auth/logout', {});
       localStorage.removeItem('user');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      console.log('[AccountSetting] Tokens removed, navigating to /login');
       navigate('/login');
     } catch (error) {
       console.error("Logout error", error);
@@ -379,7 +400,8 @@ const AccountSetting = () => {
                 <label htmlFor="profileImageInput" className="cursor-pointer block">
                   <div className="w-32 h-32 rounded-3xl bg-[#0a0a16] border-2 border-[#2a2a3e] overflow-hidden shadow-2xl flex items-center justify-center relative">
                     {user.imageProfile ? (
-                      <img src={user.imageProfile} alt="Profile" className="w-full h-full object-cover" />
+                      <img src={getImageUrl(user.imageProfile)} alt="Profile" className="w-full h-full object-cover" />
+
                     ) : (
                       <User className="w-12 h-12 text-gray-500" />
                     )}

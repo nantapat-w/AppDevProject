@@ -1,31 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ShoppingBag, MessageSquare, Bell, User, Star, Repeat, Users, PackageOpen, LogOut, Store, ClipboardList, Settings, Trash2 } from 'lucide-react';
-import { axiosInstance } from '../utils/axios';
-import axios from 'axios';
+import { axiosInstance, getImageUrl } from '../utils/axios';
+
+
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo0.png';
 import Navbar from '../components/Navbar';
 
 const Home = () => {
   const navigate = useNavigate();
+  const getSafeUser = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr || userStr === 'undefined') return null;
+      return JSON.parse(userStr);
+    } catch (e) {
+      return null;
+    }
+  };
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [siteSettings, setSiteSettings] = useState(null);
-  const [userData, setUserData] = useState(JSON.parse(localStorage.getItem('user')));
+  const [userData, setUserData] = useState(getSafeUser());
 
-  // 🛠️ Helper: รองรับทั้ง relative path (/uploads/xxx) และ absolute URL (http://...)
-  const getImageUrl = (path) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    return `https://appdevproject-4.onrender.com${path}`;
 
-  };
+
+
 
   const [showDropdown, setShowDropdown] = useState(false);
-  const currentUser = JSON.parse(localStorage.getItem('user'));
+  const currentUser = getSafeUser();
+
 
   const fetchMyProfile = async () => { //หน้าโปรไฟล์
-    const currentUser = JSON.parse(localStorage.getItem('user'));
+    const currentUser = getSafeUser();
+
     if (!currentUser) return;
     try {
       const targetId = currentUser.id || currentUser._id;

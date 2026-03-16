@@ -6,7 +6,7 @@ import {
     ArrowLeft, ClipboardList, Repeat, Package, Clock,
     MapPin, CreditCard, ChevronRight, ShoppingBag
 } from 'lucide-react';
-import axios from 'axios';
+
 import logo from '../assets/logo0.png';
 import Navbar from '../components/Navbar';
 
@@ -15,7 +15,17 @@ const OrderHistory = () => {
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
-    const currentUser = JSON.parse(localStorage.getItem('user'));
+    const getSafeUser = () => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (!userStr || userStr === 'undefined') return null;
+            return JSON.parse(userStr);
+        } catch (e) {
+            return null;
+        }
+    };
+    const currentUser = getSafeUser();
+
     const [userData, setUserData] = useState(currentUser);
     const [showDropdown, setShowDropdown] = useState(false);
 
@@ -42,6 +52,8 @@ const OrderHistory = () => {
             await axiosInstance.post('/auth/logout', {});
 
             localStorage.removeItem('user');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
             navigate('/login');
         } catch (error) {
             console.error("Logout error", error);

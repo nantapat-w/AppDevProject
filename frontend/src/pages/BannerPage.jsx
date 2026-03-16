@@ -13,7 +13,17 @@ const BannerPage = () => {
   // 🌟 State สำหรับเก็บข้อความที่อ่านมาจากไฟล์ .txt
   const [bannerFileText, setBannerFileText] = useState(""); 
   
-  const currentUser = JSON.parse(localStorage.getItem('user'));
+  const getSafeUser = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr || userStr === 'undefined') return null;
+      return JSON.parse(userStr);
+    } catch (e) {
+      return null;
+    }
+  };
+  const currentUser = getSafeUser();
+
 
   // 🌟 เพิ่ม State สำหรับคุมการเปิด/ปิด Dropdown ของ Navbar
   const [showDropdown, setShowDropdown] = useState(false);

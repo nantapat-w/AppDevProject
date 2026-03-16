@@ -131,6 +131,8 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
       await axiosInstance.post('/auth/logout', {});
 
       localStorage.removeItem('user');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
       navigate('/login');
     } catch (error) {
       console.error('Logout error', error);

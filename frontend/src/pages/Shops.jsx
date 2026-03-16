@@ -11,7 +11,18 @@ const Shops = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
-  const currentUser = JSON.parse(localStorage.getItem('user'));
+  const getSafeUser = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr || userStr === 'undefined') return null;
+      return JSON.parse(userStr);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const currentUser = getSafeUser();
+
   const isAdmin = currentUser?.role === 'admin';
 
   const handleAdminDeleteShop = async (e, shopId, shopName) => {

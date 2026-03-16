@@ -16,7 +16,17 @@ const OrderDetail = () => {
     const [cancelling, setCancelling] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
     
-    const currentUser = JSON.parse(localStorage.getItem('user'));
+    const getSafeUser = () => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (!userStr || userStr === 'undefined') return null;
+            return JSON.parse(userStr);
+        } catch (e) {
+            return null;
+        }
+    };
+    const currentUser = getSafeUser();
+
     const [userData] = useState(currentUser);
     const [showDropdown, setShowDropdown] = useState(false);
 
