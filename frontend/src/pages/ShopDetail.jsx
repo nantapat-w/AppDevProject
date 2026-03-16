@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Store, Star, MapPin, Plus, Package, X, Upload, Image as ImageIcon, Trash2, ShieldCheck, Calendar, Hash, MessageCircle, UserCheck, Clock, Pencil, AlertTriangle } from 'lucide-react';
-import axios from 'axios';
 import { axiosInstance } from '../utils/axios';
+
 
 const ShopDetail = () => {
   const { id } = useParams();
@@ -50,7 +50,7 @@ const ShopDetail = () => {
     const fetchShopData = async () => {
       try {
         // 1. ดึงข้อมูลร้านค้า
-        const shopRes = await axios.get(`https://appdevproject-3.onrender.com/api/shops/${id}`);
+        const shopRes = await axiosInstance.get(`/shops/${id}`);
         if (shopRes.data.success || shopRes.data) {
           const shopData = shopRes.data.data || shopRes.data;
           setShop(shopData);
@@ -59,7 +59,8 @@ const ShopDetail = () => {
         }
 
         // 2. ดึงข้อมูลสินค้าของร้านนี้
-        const productRes = await axios.get(`https://appdevproject-3.onrender.com/api/products/shop/${id}`);
+        const productRes = await axiosInstance.get(`/products/shop/${id}`);
+
         if (productRes.data.success) {
           setProducts(productRes.data.data);
         }
@@ -106,10 +107,10 @@ const ShopDetail = () => {
     }
 
     try {
-      const res = await axios.post(`https://appdevproject-3.onrender.com/api/products`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        withCredentials: true
+      const res = await axiosInstance.post(`/products`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
+
 
       if (res.data.success) {
         setShowAddModal(false);
@@ -126,9 +127,8 @@ const ShopDetail = () => {
     if (!window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบสินค้านี้?')) return;
 
     try {
-      const res = await axios.delete(`https://appdevproject-3.onrender.com/api/products/${productId}`, {
-        withCredentials: true
-      });
+      const res = await axiosInstance.delete(`/products/${productId}`);
+
 
       if (res.data.success) {
         setProducts(products.filter(p => p._id !== productId));
@@ -154,10 +154,10 @@ const ShopDetail = () => {
     }
 
     try {
-      const res = await axios.put(`https://appdevproject-3.onrender.com/api/shops/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        withCredentials: true
+      const res = await axiosInstance.put(`/shops/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
+
 
       if (res.data.success) {
         setShop(res.data.data);
@@ -177,9 +177,8 @@ const ShopDetail = () => {
   const handleDeleteShop = async () => {
     setDeleteLoading(true);
     try {
-      const res = await axios.delete(`https://appdevproject-3.onrender.com/api/shops/${id}`, {
-        withCredentials: true
-      });
+      const res = await axiosInstance.delete(`/shops/${id}`);
+
 
       if (res.data.success) {
         alert('🗑️ ลบร้านค้าเรียบร้อยแล้ว');

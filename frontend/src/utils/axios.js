@@ -1,10 +1,13 @@
 import axios from 'axios';
 
-// 1. ตั้งค่า baseURL เป็น Render (อันนี้คุณทำถูกแล้ว)
+// 1. ตั้งค่า baseURL เป็น Render
 export const axiosInstance = axios.create({
-    baseURL: 'https://appdevproject-3.onrender.com/api', // แนะนำให้เติม /api ไปเลยถ้าทุกเส้นทางใช้เหมือนกัน
+    baseURL: window.location.hostname === 'localhost' 
+      ? 'http://localhost:5000/api' 
+      : 'https://appdevproject-4.onrender.com/api',
     withCredentials: true,
 });
+
 
 let isRefreshing = false;
 let failedQueue = [];

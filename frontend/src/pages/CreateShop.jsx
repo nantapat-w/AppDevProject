@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
+
 import { useNavigate } from 'react-router-dom';
 import { Store, Upload, Save, ArrowLeft } from 'lucide-react';
 
@@ -38,12 +39,12 @@ const CreateShop = () => {
         formData.append('shopLogo', imageFile);
       }
 
-      const response = await axios.post('https://appdevproject-3.onrender.com/api/shops', formData, {
-        withCredentials: true, // ส่ง Cookie/Token ไปเพื่อผ่าน protectRoute
+      const response = await axiosInstance.post('/shops', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data', // บอก Backend ว่ามีไฟล์แนบมานะ
+          'Content-Type': 'multipart/form-data', 
         },
       });
+
 
       if (response.data.success) {
         alert('เปิดร้านค้าสำเร็จ!');

@@ -39,7 +39,8 @@ const OrderHistory = () => {
 
     const handleLogout = async () => {
         try {
-            await axios.post('https://appdevproject-3.onrender.com/api/auth/logout', {}, { withCredentials: true });
+            await axiosInstance.post('/auth/logout', {});
+
             localStorage.removeItem('user');
             navigate('/login');
         } catch (error) {

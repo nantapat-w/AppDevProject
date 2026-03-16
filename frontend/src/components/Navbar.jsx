@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Bell, MessageSquare, User, LogOut, ClipboardList, Settings, Store, Shield, ShoppingCart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
+
 import logo from '../assets/logo0.png';
 
 
-const API = 'https://appdevproject-3.onrender.com/api';
+const API = '/api';
+
 
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;
@@ -63,7 +65,8 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
   const fetchNotifications = async () => {
     if (!currentUser) return;
     try {
-      const res = await axios.get(`${API}/notifications`, { withCredentials: true });
+      const res = await axiosInstance.get('/notifications');
+
       if (res.data.success) {
         setNotifications(res.data.data);
         setUnreadCount(res.data.data.filter(n => !n.isRead).length);
@@ -113,7 +116,8 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
     setShowDropdown(false);
     if (next && unreadCount > 0) {
       try {
-        await axios.put(`${API}/notifications/mark-read`, {}, { withCredentials: true });
+        await axiosInstance.put('/notifications/mark-read', {});
+
         setUnreadCount(0);
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       } catch (error) {
@@ -124,7 +128,8 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
 
   const handleLogout = async () => {
     try {
-      await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
+      await axiosInstance.post('/auth/logout', {});
+
       localStorage.removeItem('user');
       navigate('/login');
     } catch (error) {

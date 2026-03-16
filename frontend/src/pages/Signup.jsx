@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Mail, Lock, User, Loader2, ArrowLeft, Repeat } from 'lucide-react'; // 🟢 เพิ่ม ArrowLeft กับ Repeat
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
+
+
 import logo from '../assets/logo0.png';
 
 const Signup = () => {
@@ -22,7 +24,8 @@ const Signup = () => {
 
     try {
       // 🚀 ยิง API สมัครสมาชิก
-      const response = await axios.post('https://appdevproject-3.onrender.com/api/auth/register', formData);
+      const response = await axiosInstance.post('/auth/register', formData);
+
 
       if (response.data.success) {
         alert('🎉 สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');

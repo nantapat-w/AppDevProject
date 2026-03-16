@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
+
 import { CreditCard, QrCode, ArrowLeft, Loader2, CheckCircle, ChevronRight, Copy, Lock, Smartphone, Repeat, MapPin, ShieldCheck, Receipt, ClipboardList, Plus, X, Save, MapPinned, Ticket } from 'lucide-react';
 import logo from '../assets/logo0.png';
 
@@ -99,7 +100,8 @@ const PaymentPage = () => {
 
     const fetchAvailableCoupons = async () => {
         try {
-            const res = await axios.get('https://appdevproject-3.onrender.com/api/coupons', { withCredentials: true });
+            const res = await axiosInstance.get('/coupons');
+
             if (res.data.success) {
                 setAvailableCoupons(res.data.data);
             }
@@ -114,7 +116,8 @@ const PaymentPage = () => {
         setIsValidatingCoupon(true);
         setCouponError('');
         try {
-            const res = await axios.post('https://appdevproject-3.onrender.com/api/coupons/validate', { code: codeToUse }, { withCredentials: true });
+            const res = await axiosInstance.post('/coupons/validate', { code: codeToUse });
+
             if (res.data.success) {
                 const coupon = res.data.data;
                 if (totalAmount < coupon.minAmount) {
@@ -143,7 +146,8 @@ const PaymentPage = () => {
     const fetchAddresses = async () => {
         try {
             setIsLoadingAddress(true);
-            const res = await axios.get('https://appdevproject-3.onrender.com/api/account-settings/addresses', { withCredentials: true });
+            const res = await axiosInstance.get('/account-settings/addresses');
+
             if (res.data.success) {
                 const filteredAddresses = res.data.addresses.filter(addr => addr.label !== 'SYSTEM_RESERVED');
                 setAddresses(filteredAddresses);
@@ -168,7 +172,8 @@ const PaymentPage = () => {
         e.preventDefault();
         try {
             setIsLoadingAddress(true);
-            const res = await axios.post('https://appdevproject-3.onrender.com/api/account-settings/addresses', addressForm, { withCredentials: true });
+            const res = await axiosInstance.post('/account-settings/addresses', addressForm);
+
             if (res.data.success) {
                 await fetchAddresses();
                 setIsAddingNewAddress(false);
@@ -223,7 +228,8 @@ const PaymentPage = () => {
             };
 
 
-            const res = await axios.post('https://appdevproject-3.onrender.com/api/orders', orderData, { withCredentials: true });
+            const res = await axiosInstance.post('/orders', orderData);
+
             if (res.data.success) {
                 console.log("Order saved successfully:", res.data.order);
                 return true;

@@ -24,7 +24,8 @@ const ProductSearch = () => {
   const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    return `https://appdevproject-3.onrender.com${path}`;
+    return `https://appdevproject-4.onrender.com${path}`;
+
   };
 
   useEffect(() => {
@@ -32,7 +33,8 @@ const ProductSearch = () => {
       if (!currentUser) return;
       try {
         const targetId = currentUser.id || currentUser._id;
-        const res = await axios.get(`https://appdevproject-3.onrender.com/api/auth/profile/${targetId}`, { withCredentials: true });
+        const res = await axiosInstance.get(`/auth/profile/${targetId}`);
+
         if (res.data.success) {
           setUserData(res.data.data);
           localStorage.setItem('user', JSON.stringify(res.data.data));
@@ -48,7 +50,8 @@ const ProductSearch = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('https://appdevproject-3.onrender.com/api/products');
+        const response = await axiosInstance.get('/products');
+
         if (response.data.success) {
           
           let fetchedProducts = response.data.data;

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, ArrowLeft, Store, Star, MapPin, X, Trash2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { axiosInstance } from '../utils/axios';
 
 const Shops = () => {
+
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [myShop, setMyShop] = useState(null);
@@ -29,14 +29,15 @@ const Shops = () => {
   useEffect(() => {
     const fetchShops = async () => {
       try {
-        const response = await axios.get('https://appdevproject-3.onrender.com/api/shops');
+        const response = await axiosInstance.get('/shops');
         if (response.data.success) {
           setShops(response.data.data);
         }
 
         // ดึงข้อมูลร้านของตัวเองถ้าล็อกอินอยู่
         if (currentUser) {
-          const myShopRes = await axios.get('https://appdevproject-3.onrender.com/api/shops/my-shop', { withCredentials: true });
+          const myShopRes = await axiosInstance.get('/shops/my-shop');
+
           if (myShopRes.data.success && myShopRes.data.hasShop) {
             setMyShop(myShopRes.data.data);
           }

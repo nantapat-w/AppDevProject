@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, ArrowLeft, User, PackageOpen, Plus, X, MapPin, Truck, Banknote, CheckCircle2, ChevronRight, Clock, Box, ShieldCheck } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
+
 
 const Chat = () => {
   const [activeTab, setActiveTab] = useState('GENERAL'); 
@@ -50,7 +51,7 @@ const Chat = () => {
     if (!myId) return;
     const fetchChats = async () => {
       try {
-        const res = await axios.get('https://appdevproject-3.onrender.com/api/chats', { withCredentials: true }); 
+        const res = await axiosInstance.get('/chats'); 
         if (res.data.success) setChats(res.data.data);
       } catch (error) { console.error(error); }
     };
@@ -65,7 +66,7 @@ const Chat = () => {
     if (activeChat && activeChat._id !== 'new_temp_chat' && myId) {
       const fetchMessages = async () => {
         try {
-          const res = await axios.get(`https://appdevproject-3.onrender.com/api/chats/${activeChat._id}`, { withCredentials: true });
+          const res = await axiosInstance.get(`/chats/${activeChat._id}`);
           if (res.data.success) setMessages(res.data.data.messages);
         } catch (error) { console.error(error); }
       };
@@ -80,8 +81,9 @@ const Chat = () => {
     if (!myId) return;
     const fetchTrackedTrades = async () => {
       try {
-        const res = await axios.get('https://appdevproject-3.onrender.com/api/trades/outbox', { withCredentials: true });
-        const res2 = await axios.get('https://appdevproject-3.onrender.com/api/trades/inbox', { withCredentials: true });
+        const res = await axiosInstance.get('/trades/outbox');
+        const res2 = await axiosInstance.get('/trades/inbox');
+
         if (res.data.success && res2.data.success) {
            setTrackedTrades([...res.data.data, ...res2.data.data]);
         }
@@ -101,17 +103,18 @@ const Chat = () => {
     const receiver = activeChat.participants.find(p => String(p._id) !== myId) || activeChat.participants[0];
 
     try {
-      const res = await axios.post('https://appdevproject-3.onrender.com/api/chats', {
+      const res = await axiosInstance.post('/chats', {
         receiverId: receiver._id,
         content: textToSend,
         chatType: isTrade ? 'TRADE' : activeTab
-      }, { withCredentials: true });
+      });
+
 
       if (res.data.success) {
         setMessages(prev => [...prev, { sender: myId, content: textToSend }]);
         setNewMessage('');
         if (activeChat._id === 'new_temp_chat') {
-            const refreshRes = await axios.get('https://appdevproject-3.onrender.com/api/chats', { withCredentials: true }); 
+            const refreshRes = await axiosInstance.get('/chats'); 
             if (refreshRes.data.success) {
                 setChats(refreshRes.data.data);
                 const realChat = refreshRes.data.data.find(c => 
@@ -143,7 +146,7 @@ const Chat = () => {
             // สร้าง Record ใน DB จริงๆ
             // receiver._id คือคนส่งข้อเสนอ (ผู้ยื่น = requestId)
             // myId คือคนที่กด ACCEPT (ผู้รับข้อเสนอ = receiveId)
-            await axios.post('https://appdevproject-3.onrender.com/api/trades', {
+            await axiosInstance.post('/trades', {
                 receiveId: myId,          // คนกด Accept = คนรับข้อเสนอ
                 requestId: receiver._id,  // คนส่งข้อเสนอ = ผู้ยื่น
                 message: desc,
@@ -151,18 +154,20 @@ const Chat = () => {
                 delivered: method,
                 meetupLocation: loc,
                 offerItems: location.state?.productId ? [location.state.productId] : []
-            }, { withCredentials: true });
+            });
+
         } catch (error) { console.error("Error creating trade record:", error); }
     }
   };
 
   const updateShippingStatus = async () => {
     try {
-        const res = await axios.put('https://appdevproject-3.onrender.com/api/trades/shipping', {
+        const res = await axiosInstance.put('/trades/shipping', {
             tradeId: selectedTradeForShipping._id,
             trackingNumber: shippingForm.trackingNumber,
             shippingCompany: shippingForm.shippingCompany
-        }, { withCredentials: true });
+        });
+
         if (res.data.success) {
             setShowShippingModal(false);
             setShippingForm({ trackingNumber: '', shippingCompany: '' });
@@ -174,7 +179,8 @@ const Chat = () => {
 
   const completeTradeTransaction = async (tradeId) => {
     try {
-        const res = await axios.put(`https://appdevproject-3.onrender.com/api/trades/complete/${tradeId}`, {}, { withCredentials: true });
+        const res = await axiosInstance.put(`/trades/complete/${tradeId}`, {});
+
         if (res.data.success) {
             handleSendMessage(`🏁 การเทรดเสร็จสมบูรณ์แล้ว! ได้รับของเรียบร้อย`, true);
         }

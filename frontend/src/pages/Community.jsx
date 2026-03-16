@@ -6,13 +6,11 @@ import {
     PackageSearch, Sparkles, PackageOpen, Check, Camera, Video, Trash2,
     MoreHorizontal, Pencil
 } from 'lucide-react';
-import axios from 'axios';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import logo from '../assets/logo0.png';
-import Navbar from '../components/Navbar';
+import { axiosInstance } from '../utils/axios';
 
 // ---------- utils ----------
-const API = 'https://appdevproject-3.onrender.com/api';
+const API = '/api'; // ไม่จำเป็นต้องมี Full URL แล้วเพราะใช้ axiosInstance
+
 
 const POST_TYPE_LABELS = {
     ALL: { label: 'ทั้งหมด', icon: <Sparkles className="w-3.5 h-3.5" /> },
@@ -347,7 +345,8 @@ const Community = () => {
 
     const handleLogout = async () => {
         try {
-            await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
+            await axiosInstance.post('/auth/logout', {});
+
             localStorage.removeItem('user');
             navigate('/login');
         } catch (err) {
@@ -646,7 +645,8 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
         e.stopPropagation();
         const targetId = overrideUserId || post.author._id;
         try {
-            const res = await axios.put(`${API}/auth/follow/${targetId}`, {}, { withCredentials: true });
+            const res = await axiosInstance.put(`/auth/follow/${targetId}`, {});
+
             if (res.data.success) { alert(res.data.isFollowing ? '✅ ติดตามแล้ว!' : '❌ เลิกติดตามแล้ว'); }
         } catch (error) { console.error("Follow error:", error); alert("ไม่สามารถติดตามได้"); }
         setShowMenu(false); setShowCommentMenu(null);
@@ -661,12 +661,13 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
 
     // Combine video and images for gallery
     const mediaItems = [];
-    if (post.video) mediaItems.push({ type: 'video', url: post.video.startsWith('http') ? post.video : `https://appdevproject-3.onrender.com${post.video}` });
+    if (post.video) mediaItems.push({ type: 'video', url: post.video.startsWith('http') ? post.video : `https://appdevproject-4.onrender.com${post.video}` });
     if (post.images?.length > 0) {
         post.images.forEach(img => {
-            mediaItems.push({ type: 'image', url: img.startsWith('http') ? img : `https://appdevproject-3.onrender.com${img}` });
+            mediaItems.push({ type: 'image', url: img.startsWith('http') ? img : `https://appdevproject-4.onrender.com${img}` });
         });
     }
+
 
     const postDate = new Date(post.createdAt);
     const dateFormatted = `${postDate.getDate()}/${postDate.getMonth() + 1}/${postDate.getFullYear()}`;
