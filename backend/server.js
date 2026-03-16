@@ -32,7 +32,8 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
     origin: [
         "http://localhost:5173",
-        "https://appdevproject-frontend.onrender.com" // 🌟 เพิ่ม URL หน้าบ้านของคุณเข้าไป
+        "https://appdevproject-frontend.onrender.com",
+        "https://appdevproject-frontend.onrender.com/"
     ],
     credentials: true
 }));
