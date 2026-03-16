@@ -31,8 +31,11 @@ const Profile = () => {
   useEffect(() => {
     const targetId = id || myId;
     if (!targetId) {
+      // 🚫 Remove auto-redirect
+      /*
       navigate('/login');
       return;
+      */
     }
 
     const fetchProfile = async () => {

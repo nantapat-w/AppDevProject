@@ -41,11 +41,13 @@ const AdminDashboard = () => {
 
 
   useEffect(() => {
+    /* 🚫 Remove auto-redirect
     if (!currentUser) {
       console.log("No user found in localStorage, redirecting to login");
       navigate('/login');
       return;
     }
+    */
 
     if (userRole !== 'admin') {
       console.log("User is not admin, role:", userRole, "redirecting to home");

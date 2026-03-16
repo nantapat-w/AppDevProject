@@ -28,7 +28,7 @@ axiosInstance.interceptors.response.use(
         if (error.response?.status === 401 && !originalRequest._retry) {
 
             if (originalRequest.url?.includes('/auth/refresh-token')) {
-                window.location.href = '/login';
+                // window.location.href = '/login'; // 🚫 Remove auto-redirect
                 return Promise.reject(error);
             }
 
@@ -53,7 +53,7 @@ axiosInstance.interceptors.response.use(
             } catch (refreshError) {
                 processQueue(refreshError);
                 isRefreshing = false;
-                window.location.href = '/login';
+                // window.location.href = '/login'; // 🚫 Remove auto-redirect
                 return Promise.reject(refreshError);
             }
         }
