@@ -6,7 +6,8 @@ import {
   ChevronRight, Save, Camera, Lock, Eye, EyeOff,
   Plus, Trash2, MapPinned, CreditCard as CardIcon,
   X, Check, LogOut, Store, Search, Bell, MessageSquare,
-  Settings, UserRound, Calendar, FileText, ClipboardList, Package, Clock, ExternalLink
+  Settings, UserRound, Calendar, FileText, ClipboardList, Package, Clock, ExternalLink,
+  Pencil
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import logo from '../assets/logo0.png';
@@ -99,12 +100,15 @@ const AccountSetting = () => {
   const handleDeleteAddress = async (id) => {
     if (!window.confirm('คุณต้องการลบที่อยู่นี้ใช่หรือไม่?')) return;
     try {
+      setLoading(true);
       const res = await axiosInstance.delete(`/account-settings/addresses/${id}`, { withCredentials: true });
       if (res.data.success) {
         setAddresses(res.data.addresses);
       }
     } catch (error) {
       console.error('Error deleting address:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -730,7 +734,7 @@ const AccountSetting = () => {
               </form>
             ) : (
               <div className="space-y-4">
-                {addresses.length === 0 ? (
+                {addresses.filter(a => a.label !== 'SYSTEM_RESERVED').length === 0 ? (
                   <div className="p-12 border-2 border-dashed border-[#2a2a3e] rounded-2xl flex flex-col items-center justify-center text-gray-500 gap-4">
                     <MapPin className="w-12 h-12 opacity-20" />
                     <p>ยังไม่มีที่อยู่ถูกจัดส่งถูกบันทึกไว้</p>
@@ -742,38 +746,61 @@ const AccountSetting = () => {
                     </button>
                   </div>
                 ) : (
-                  addresses.map((addr) => (
-                    <div key={addr._id} className={`p-6 bg-[#151522] border ${addr.isDefault ? 'border-[#8b2cf5]/50' : 'border-[#2a2a3e]'} rounded-2xl flex justify-between items-start group transition-all`}>
-                      <div className="flex gap-4">
-                        <div className={`p-3 rounded-xl h-fit ${addr.isDefault ? 'bg-[#8b2cf5]/10' : 'bg-gray-500/10'}`}>
-                          <MapPin className={`w-6 h-6 ${addr.isDefault ? 'text-[#8b2cf5]' : 'text-gray-500'}`} />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <h4 className="font-bold">{addr.label}</h4>
-                            {addr.isDefault ? (
-                              <span className="px-2 py-0.5 bg-[#8b2cf5]/20 text-[#8b2cf5] text-[10px] rounded uppercase font-bold border border-[#8b2cf5]/30">Default</span>
-                            ) : (
-                              <button
-                                onClick={() => handleSetDefault(addr._id)}
-                                className="text-[10px] text-gray-500 hover:text-[#8b2cf5] transition uppercase font-bold"
-                              >
-                                Set as Default
-                              </button>
-                            )}
+                  addresses
+                    .filter(addr => addr.label !== 'SYSTEM_RESERVED')
+                    .map((addr) => (
+                      <div key={addr._id} className={`p-6 bg-[#151522] border ${addr.isDefault ? 'border-[#8b2cf5]/50' : 'border-[#2a2a3e]'} rounded-2xl flex justify-between items-start group transition-all`}>
+                        <div className="flex-1 min-w-0 flex gap-4">
+                          <div className={`p-3 rounded-xl h-fit flex-shrink-0 ${addr.isDefault ? 'bg-[#8b2cf5]/10' : 'bg-gray-500/10'}`}>
+                            <MapPin className={`w-6 h-6 ${addr.isDefault ? 'text-[#8b2cf5]' : 'text-gray-500'}`} />
                           </div>
-                          <p className="text-sm text-white font-medium mt-2">{addr.fullName} ({addr.phoneNumber})</p>
-                          <p className="text-sm text-gray-400 mt-1 max-w-md leading-relaxed">
-                            {addr.addressLine}, {addr.subDistrict}, {addr.district}, {addr.province} {addr.zipCode}
-                          </p>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-3">
+                              <h4 className="font-bold truncate">{addr.label}</h4>
+                              {addr.isDefault ? (
+                                <span className="px-2 py-0.5 bg-[#8b2cf5]/20 text-[#8b2cf5] text-[10px] rounded uppercase font-bold border border-[#8b2cf5]/30">Default</span>
+                              ) : (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleSetDefault(addr._id); }}
+                                  className="text-[10px] text-gray-500 hover:text-[#8b2cf5] transition uppercase font-bold"
+                                >
+                                  Set as Default
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-sm text-white font-medium mt-2 truncate">{addr.fullName} ({addr.phoneNumber})</p>
+                            <p className="text-sm text-gray-400 mt-1 leading-relaxed break-words">
+                              {addr.addressLine}, {addr.subDistrict}, {addr.district}, {addr.province} {addr.zipCode}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-4 flex-shrink-0 relative z-[100]">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleEdit(addr); }} 
+                            className="p-3 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition rounded-xl border border-blue-500/20 shadow-lg"
+                            title="Edit Address"
+                          >
+                            <Pencil className="w-6 h-6" />
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleDeleteAddress(addr._id); }} 
+                            className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition rounded-xl border border-red-500/20 shadow-lg"
+                            title="Delete Address"
+                          >
+                            <Trash2 className="w-6 h-6" />
+                          </button>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleEdit(addr)} className="p-2 text-gray-500 hover:text-white transition"><Save className="w-5 h-5 text-gray-400 hover:text-[#8b2cf5]" /></button>
-                        <button onClick={() => handleDeleteAddress(addr._id)} className="p-2 text-gray-500 hover:text-red-500 transition"><Trash2 className="w-5 h-5" /></button>
-                      </div>
-                    </div>
-                  ))
+                    ))
+                )}
+                {addresses.filter(a => a.label !== 'SYSTEM_RESERVED').length > 0 && !isAdding && (
+                  <button
+                    onClick={() => { setIsAdding(true); setEditingAddress(null); setFormData(initialFormState); }}
+                    className="w-full py-4 border-2 border-dashed border-[#2a2a3e] rounded-2xl flex items-center justify-center gap-3 text-gray-500 hover:border-[#8b2cf5] hover:text-[#8b2cf5] transition group mt-6"
+                  >
+                    <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" /> 
+                    <span className="font-bold">เพิ่มที่อยู่ใหม่</span>
+                  </button>
                 )}
               </div>
             )}
