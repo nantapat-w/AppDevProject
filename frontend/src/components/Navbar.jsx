@@ -7,7 +7,7 @@ import axios from 'axios';
 import logo from '../assets/logo0.png';
 
 
-const API = 'http://localhost:5000/api';
+const API = 'https://appdevproject-3.onrender.com/api';
 
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;

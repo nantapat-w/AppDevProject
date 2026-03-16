@@ -21,7 +21,7 @@ const EditProduct = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/products/${id}`);
+        const res = await axios.get(`https://appdevproject-3.onrender.com/api/products/${id}`);
         if (res.data.success) {
           const product = res.data.data;
           setProductForm({
@@ -71,7 +71,7 @@ const EditProduct = () => {
     }
 
     try {
-      const res = await axios.put(`http://localhost:5000/api/products/${id}`, formData, {
+      const res = await axios.put(`https://appdevproject-3.onrender.com/api/products/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true
       });

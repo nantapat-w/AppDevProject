@@ -38,7 +38,7 @@ const CreateShop = () => {
         formData.append('shopLogo', imageFile);
       }
 
-      const response = await axios.post('http://localhost:5000/api/shops', formData, {
+      const response = await axios.post('https://appdevproject-3.onrender.com/api/shops', formData, {
         withCredentials: true, // ส่ง Cookie/Token ไปเพื่อผ่าน protectRoute
         headers: {
           'Content-Type': 'multipart/form-data', // บอก Backend ว่ามีไฟล์แนบมานะ

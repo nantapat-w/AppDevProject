@@ -38,7 +38,7 @@ const Profile = () => {
     const fetchProfile = async () => {
       setLoading(true); // ตัวนี้คุม Loading ทั้งหน้า (เฉพาะตอนเข้าหน้าแรก)
       try {
-        const res = await axiosInstance.get(`http://localhost:5000/api/auth/profile/${targetId}`);
+        const res = await axiosInstance.get(`https://appdevproject-3.onrender.com/api/auth/profile/${targetId}`);
         if (res.data.success) {
           setProfileData(res.data.data);
           setIsFollowing(res.data.data.followers?.some(f => String(f._id || f) === String(myId)));

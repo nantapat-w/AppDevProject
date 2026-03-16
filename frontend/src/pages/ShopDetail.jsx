@@ -50,7 +50,7 @@ const ShopDetail = () => {
     const fetchShopData = async () => {
       try {
         // 1. ดึงข้อมูลร้านค้า
-        const shopRes = await axios.get(`http://localhost:5000/api/shops/${id}`);
+        const shopRes = await axios.get(`https://appdevproject-3.onrender.com/api/shops/${id}`);
         if (shopRes.data.success || shopRes.data) {
           const shopData = shopRes.data.data || shopRes.data;
           setShop(shopData);
@@ -59,7 +59,7 @@ const ShopDetail = () => {
         }
 
         // 2. ดึงข้อมูลสินค้าของร้านนี้
-        const productRes = await axios.get(`http://localhost:5000/api/products/shop/${id}`);
+        const productRes = await axios.get(`https://appdevproject-3.onrender.com/api/products/shop/${id}`);
         if (productRes.data.success) {
           setProducts(productRes.data.data);
         }
@@ -106,7 +106,7 @@ const ShopDetail = () => {
     }
 
     try {
-      const res = await axios.post(`http://localhost:5000/api/products`, formData, {
+      const res = await axios.post(`https://appdevproject-3.onrender.com/api/products`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true
       });
@@ -126,7 +126,7 @@ const ShopDetail = () => {
     if (!window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบสินค้านี้?')) return;
 
     try {
-      const res = await axios.delete(`http://localhost:5000/api/products/${productId}`, {
+      const res = await axios.delete(`https://appdevproject-3.onrender.com/api/products/${productId}`, {
         withCredentials: true
       });
 
@@ -154,7 +154,7 @@ const ShopDetail = () => {
     }
 
     try {
-      const res = await axios.put(`http://localhost:5000/api/shops/${id}`, formData, {
+      const res = await axios.put(`https://appdevproject-3.onrender.com/api/shops/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true
       });
@@ -177,7 +177,7 @@ const ShopDetail = () => {
   const handleDeleteShop = async () => {
     setDeleteLoading(true);
     try {
-      const res = await axios.delete(`http://localhost:5000/api/shops/${id}`, {
+      const res = await axios.delete(`https://appdevproject-3.onrender.com/api/shops/${id}`, {
         withCredentials: true
       });
 

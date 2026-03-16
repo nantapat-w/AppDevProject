@@ -39,7 +39,7 @@ const OrderHistory = () => {
 
     const handleLogout = async () => {
         try {
-            await axios.post('http://localhost:5000/api/auth/logout', {}, { withCredentials: true });
+            await axios.post('https://appdevproject-3.onrender.com/api/auth/logout', {}, { withCredentials: true });
             localStorage.removeItem('user');
             navigate('/login');
         } catch (error) {

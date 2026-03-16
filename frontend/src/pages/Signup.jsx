@@ -22,7 +22,7 @@ const Signup = () => {
 
     try {
       // 🚀 ยิง API สมัครสมาชิก
-      const response = await axios.post('http://localhost:5000/api/auth/register', formData);
+      const response = await axios.post('https://appdevproject-3.onrender.com/api/auth/register', formData);
 
       if (response.data.success) {
         alert('🎉 สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');

@@ -17,7 +17,7 @@ const Home = () => {
   const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    return `http://localhost:5000${path}`;
+    return `https://appdevproject-3.onrender.com${path}`;
   };
 
   const [showDropdown, setShowDropdown] = useState(false);
@@ -28,7 +28,7 @@ const Home = () => {
     if (!currentUser) return;
     try {
       const targetId = currentUser.id || currentUser._id;
-      const res = await axios.get(`http://localhost:5000/api/auth/profile/${targetId}`, { withCredentials: true });
+      const res = await axios.get(`https://appdevproject-3.onrender.com/api/auth/profile/${targetId}`, { withCredentials: true });
       if (res.data.success) {
         setUserData(res.data.data);
         localStorage.setItem('user', JSON.stringify(res.data.data));
@@ -41,7 +41,7 @@ const Home = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/products');
+        const response = await axios.get('https://appdevproject-3.onrender.com/api/products');
         if (response.data.success) {
           //เรียงลำดับจากวันที่สร้างล่าสุด (ใหม่สุดอยู่บนสุด)
           const sortedProducts = response.data.data.sort((a, b) => {
@@ -59,7 +59,7 @@ const Home = () => {
 
     const fetchSiteSettings = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/settings');
+        const response = await axios.get('https://appdevproject-3.onrender.com/api/settings');
         if (response.data.success) {
           setSiteSettings(response.data.data);
         }

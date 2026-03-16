@@ -55,7 +55,7 @@ const AdminDashboard = () => {
 
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/admin/users', { withCredentials: true });
+        const response = await axios.get('https://appdevproject-3.onrender.com/api/admin/users', { withCredentials: true });
         if (response.data.success) {
           setUsers(response.data.data);
         }
@@ -66,14 +66,14 @@ const AdminDashboard = () => {
 
     const fetchCoupons = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/admin/coupons', { withCredentials: true });
+        const res = await axios.get('https://appdevproject-3.onrender.com/api/admin/coupons', { withCredentials: true });
         if (res.data.success) setCoupons(res.data.data);
       } catch (err) { console.error(err); }
     };
 
     const fetchSettings = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/settings', { withCredentials: true });
+        const res = await axios.get('https://appdevproject-3.onrender.com/api/settings', { withCredentials: true });
         if (res.data.success && res.data.data) {
           // Merge with default to ensure banner exists
           setSettings(prev => ({
@@ -99,10 +99,10 @@ const AdminDashboard = () => {
     setSaving(true);
     try {
       // 1. เซฟตั้งค่าอื่นๆ (ชื่อโปรโมชั่น, โค้ด) ลง Database ปกติ
-      const res = await axios.put('http://localhost:5000/api/admin/settings', settings, { withCredentials: true });
+      const res = await axios.put('https://appdevproject-3.onrender.com/api/admin/settings', settings, { withCredentials: true });
       
       // 2. 🌟 ยิง API ไปให้ server.js สร้างไฟล์ .txt 🌟
-      await axios.post('http://localhost:5000/api/admin/save-banner-file', {
+      await axios.post('https://appdevproject-3.onrender.com/api/admin/save-banner-file', {
           content: settings?.banner?.content || ''
       }, { withCredentials: true });
 
@@ -120,7 +120,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/admin/coupons', newCoupon, { withCredentials: true });
+      const res = await axios.post('https://appdevproject-3.onrender.com/api/admin/coupons', newCoupon, { withCredentials: true });
       if (res.data.success) {
         setCoupons([res.data.data, ...coupons]);
         setIsModalOpen(false);
@@ -133,14 +133,14 @@ const AdminDashboard = () => {
   const handleDeleteCoupon = async (id) => {
     if (!window.confirm('ยืนยันการลบคูปองนี้?')) return;
     try {
-      const res = await axios.delete(`http://localhost:5000/api/admin/coupons/${id}`, { withCredentials: true });
+      const res = await axios.delete(`https://appdevproject-3.onrender.com/api/admin/coupons/${id}`, { withCredentials: true });
       if (res.data.success) setCoupons(coupons.filter(c => c._id !== id));
     } catch (err) { console.error(err); }
   };
 
   const handleUpdateStatus = async (userId, newStatus) => {
     try {
-      const response = await axios.put(`http://localhost:5000/api/admin/users/${userId}/status`, { status: newStatus }, { withCredentials: true });
+      const response = await axios.put(`https://appdevproject-3.onrender.com/api/admin/users/${userId}/status`, { status: newStatus }, { withCredentials: true });
       if (response.data.success) {
         setUsers(users.map(u => u._id === userId ? { ...u, accountStatus: newStatus } : u));
       }
@@ -154,7 +154,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      const response = await axios.put(`http://localhost:5000/api/admin/users/${editingUser._id}`, editingUser, { withCredentials: true });
+      const response = await axios.put(`https://appdevproject-3.onrender.com/api/admin/users/${editingUser._id}`, editingUser, { withCredentials: true });
       if (response.data.success) {
         setUsers(users.map(u => u._id === editingUser._id ? response.data.data : u));
         setIsUserModalOpen(false);
@@ -172,7 +172,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      const response = await axios.put(`http://localhost:5000/api/admin/coupons/${editingCoupon._id}`, editingCoupon, { withCredentials: true });
+      const response = await axios.put(`https://appdevproject-3.onrender.com/api/admin/coupons/${editingCoupon._id}`, editingCoupon, { withCredentials: true });
       if (response.data.success) {
         setCoupons(coupons.map(c => c._id === editingCoupon._id ? response.data.data : c));
         setIsCouponEditModalOpen(false);
@@ -190,7 +190,7 @@ const AdminDashboard = () => {
     if (!window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้งานนี้? การกระทำนี้ไม่สามารถย้อนกลับได้")) return;
 
     try {
-      const response = await axios.delete(`http://localhost:5000/api/admin/users/${userId}`, { withCredentials: true });
+      const response = await axios.delete(`https://appdevproject-3.onrender.com/api/admin/users/${userId}`, { withCredentials: true });
       if (response.data.success) {
         setUsers(users.filter(u => u._id !== userId));
       }
@@ -208,7 +208,7 @@ const AdminDashboard = () => {
       if (clearConfirmText !== 'CONFIRM') return;
       setClearing(true);
       try {
-          const res = await axios.delete('http://localhost:5000/api/admin/clear-data', { withCredentials: true });
+          const res = await axios.delete('https://appdevproject-3.onrender.com/api/admin/clear-data', { withCredentials: true });
           if (res.data.success) {
               setClearResult(res.data.deleted);
               setClearConfirmText('');
