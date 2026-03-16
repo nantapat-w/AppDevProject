@@ -47,6 +47,17 @@ const OrderHistory = () => {
         }
     };
 
+    const getStatusInfo = (status) => {
+        switch (status) {
+            case 'PENDING': return { label: 'รอการชำระเงิน', color: 'text-yellow-500', bg: 'bg-yellow-500/10' };
+            case 'PAID': return { label: 'ชำระเงินแล้ว', color: 'text-blue-500', bg: 'bg-blue-500/10' };
+            case 'SHIPPED': return { label: 'กำลังจัดส่ง', color: 'text-purple-500', bg: 'bg-purple-500/10' };
+            case 'DELIVERED': return { label: 'จัดส่งสำเร็จ', color: 'text-green-500', bg: 'bg-green-500/10' };
+            case 'CANCELLED': return { label: 'ยกเลิกแล้ว', color: 'text-red-500', bg: 'bg-red-500/10' };
+            default: return { label: status, color: 'text-gray-500', bg: 'bg-gray-500/10' };
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#05050f] text-white font-sans pb-20">
             {/* 🟢 Navbar */}
@@ -108,7 +119,12 @@ const OrderHistory = () => {
                                         </div>
                                         <div>
                                             <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Order ID</p>
-                                            <p className="text-sm font-mono text-white mt-0.5">{order.orderId}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <p className="text-sm font-mono text-white">{order.orderId}</p>
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${getStatusInfo(order.status).bg} ${getStatusInfo(order.status).color} border border-white/5`}>
+                                                    {getStatusInfo(order.status).label}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="text-right flex flex-col items-end">
@@ -159,16 +175,33 @@ const OrderHistory = () => {
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-col items-end justify-end space-y-4">
+                                        <div className="flex flex-col items-end justify-end space-y-2">
                                             <div className="text-right">
-                                                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">ยอดรวมสุทธิ</p>
+                                                <div className="flex items-center justify-end gap-2 mb-1">
+                                                    <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">ยอดรวมสินค้า:</span>
+                                                    <span className="text-[10px] font-bold text-white">฿{(order.originalAmount || order.totalAmount).toLocaleString()}</span>
+                                                </div>
+                                                {order.discountAmount > 0 && (
+                                                    <div className="flex items-center justify-end gap-2 mb-1">
+                                                        <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">ส่วนลด {order.discountCode ? `(${order.discountCode})` : ''}:</span>
+                                                        <span className="text-[10px] font-bold text-red-500">-฿{order.discountAmount.toLocaleString()}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center justify-end gap-2 mb-1">
+                                                    <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">ค่าจัดส่ง:</span>
+                                                    <span className="text-[10px] font-bold text-green-500">฿0</span>
+                                                </div>
+                                                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">ยอดชำระสุทธิ</p>
                                                 <p className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">
                                                     ฿{order.totalAmount.toLocaleString()}
                                                 </p>
                                             </div>
-                                            <button className="px-6 py-2.5 bg-[#1a1a2e] border border-[#2a2a3e] rounded-xl text-xs font-bold hover:border-[#8b2cf5] hover:text-[#8b2cf5] transition-all flex items-center gap-2">
-                                                รายละเอียดคำสั่งซื้อ <ChevronRight className="w-3 h-3" />
-                                            </button>
+                                            <Link 
+                                                to={`/orders/${order._id}`}
+                                                className="px-6 py-2.5 bg-[#1a1a2e] border border-[#2a2a3e] rounded-xl text-xs font-bold shadow-lg hover:border-[#8b2cf5] hover:text-[#8b2cf5] transition-all flex items-center gap-2 group/btn"
+                                            >
+                                                รายละเอียดคำสั่งซื้อ <ChevronRight className="w-3 h-3 group-hover/btn:translate-x-1 transition-transform" />
+                                            </Link>
                                         </div>
                                     </div>
                                 </div>

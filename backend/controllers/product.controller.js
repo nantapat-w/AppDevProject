@@ -67,7 +67,8 @@ export const getProductById = async (req,res) => {
             req.params.id,
             {$inc:{views:1}},
             {new:true}
-        ).populate("ownerId" , "username email imageProfile");
+        ).populate("ownerId" , "username email imageProfile")
+         .populate("shopId", "shopName shopLogo");
 
         if (!product) {
             return res.status(404).json({ success: false, message: "ไม่พบข้อมูลสินค้านี้" });

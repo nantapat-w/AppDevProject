@@ -17,6 +17,7 @@ import AccountSetting from './pages/AccountSetting';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import OrderHistory from './pages/OrderHistory';
+import OrderDetail from './pages/OrderDetail';
 import AdminDashboard from './pages/AdminDashboard';
 import ProductSearch from './pages/ProductSearch';
 import BannerPage from './pages/BannerPage';
@@ -49,6 +50,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/orders" element={<OrderHistory />} />
+        <Route path="/orders/:orderId" element={<OrderDetail />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/search" element={<ProductSearch />} />
         <Route path="/banner" element={<BannerPage />} />

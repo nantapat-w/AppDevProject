@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
-import { Mail, ArrowRight, Loader2, Repeat, ArrowLeft, User } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Mail, ArrowRight, Loader2, ArrowLeft } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { axiosInstance } from '../utils/axios';
 
 const ForgotPassword = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const fromAccountSettings = location.state?.from === 'account-settings';
+    
     const [identifier, setIdentifier] = useState('');
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
+
+    const handleBack = () => {
+        if (fromAccountSettings) {
+            navigate('/account-settings');
+        } else {
+            navigate('/login');
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -32,16 +43,14 @@ const ForgotPassword = () => {
         <div className="min-h-screen bg-[#05050f] flex items-center justify-center p-4 font-sans text-white relative overflow-hidden">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#8b2cf5] opacity-10 blur-[120px] rounded-full pointer-events-none"></div>
 
-            <Link to="/login" className="absolute top-6 left-6 md:top-10 md:left-10 flex items-center gap-2 hover:opacity-80 transition z-20 group">
+            <button 
+                onClick={handleBack}
+                className="absolute top-6 left-6 md:top-10 md:left-10 flex items-center gap-2 hover:opacity-80 transition z-20 group"
+            >
                 <div className="w-10 h-10 rounded-xl bg-[#151522] border border-[#2a2a3e] flex items-center justify-center group-hover:border-[#8b2cf5] transition-all">
                     <ArrowLeft className="text-gray-400 w-5 h-5 group-hover:text-white transition-colors" />
                 </div>
-                <div className="hidden sm:flex items-center gap-2 ml-2">
-                    <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">
-                        Back to Login
-                    </span>
-                </div>
-            </Link>
+            </button>
 
             <div className="w-full max-w-md bg-[#0a0a16] border border-[#2a2a3e] rounded-2xl p-8 shadow-2xl relative z-10">
                 <div className="text-center mb-8">
