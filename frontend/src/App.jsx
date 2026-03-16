@@ -18,6 +18,8 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import OrderHistory from './pages/OrderHistory';
 import AdminDashboard from './pages/AdminDashboard';
+import ProductSearch from './pages/ProductSearch';
+import BannerPage from './pages/BannerPage';
 
 
 function App() {
@@ -32,13 +34,13 @@ function App() {
         <Route path="/profile/:id" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/create-shop" element={<CreateShop />} />
-        
+
         {/* 🟢 Route สำหรับหน้ารวมร้านค้า และ หน้ารายละเอียดร้านค้า */}
         <Route path="/shops" element={<Shops />} />
         <Route path="/shops/:id" element={<ShopDetail />} />
-         <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/product/:id" element={<ProductDetail />} />
         <Route path="/product/edit/:id" element={<EditProduct />} />
-        
+
         <Route path="/community" element={<Community />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/payment" element={<Payment />} />
@@ -48,8 +50,9 @@ function App() {
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/orders" element={<OrderHistory />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/search" element={<ProductSearch />} />
+        <Route path="/banner" element={<BannerPage />} />
       </Routes>
-
     </BrowserRouter>
   );
 }

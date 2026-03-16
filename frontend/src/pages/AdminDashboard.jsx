@@ -37,195 +37,249 @@ const AdminDashboard = () => {
     const userId = currentUser?._id;
     const userRole = currentUser?.role;
 
-    useEffect(() => {
-        if (!currentUser) {
-            console.log("No user found in localStorage, redirecting to login");
-            navigate('/login');
-            return;
-        }
 
-        if (userRole !== 'admin') {
-            console.log("User is not admin, role:", userRole, "redirecting to home");
-            navigate('/');
-            return;
-        }
 
-        const fetchUsers = async () => {
-            try {
-                const response = await axios.get('http://localhost:5000/api/admin/users', { withCredentials: true });
-                if (response.data.success) {
-                    setUsers(response.data.data);
-                }
-            } catch (error) {
-                console.error("Error fetching users:", error);
-            }
-        };
 
-        const fetchCoupons = async () => {
-          try {
-            const res = await axios.get('http://localhost:5000/api/admin/coupons', { withCredentials: true });
-            if (res.data.success) setCoupons(res.data.data);
-          } catch (err) { console.error(err); }
-        };
-    
-        const fetchSettings = async () => {
-          try {
-            const res = await axios.get('http://localhost:5000/api/settings', { withCredentials: true });
-            if (res.data.success && res.data.data) {
-                // Merge with default to ensure banner exists
-                setSettings(prev => ({
-                    ...prev,
-                    ...res.data.data,
-                    banner: { ...prev.banner, ...res.data.data.banner }
-                }));
-            }
-          } catch (err) { console.error(err); }
-        };
-    
-        const loadData = async () => {
-          setLoading(true);
-          await Promise.all([fetchUsers(), fetchCoupons(), fetchSettings()]);
-          setLoading(false);
-        };
-    
-        loadData();
-    }, [navigate, userId, userRole]);
+  useEffect(() => {
+    if (!currentUser) {
+      console.log("No user found in localStorage, redirecting to login");
+      navigate('/login');
+      return;
+    }
 
-    const handleUpdateSettings = async (e) => {
-      e.preventDefault();
-      setSaving(true);
+    if (userRole !== 'admin') {
+      console.log("User is not admin, role:", userRole, "redirecting to home");
+      navigate('/');
+      return;
+    }
+
+    const fetchUsers = async () => {
       try {
-        const res = await axios.put('http://localhost:5000/api/admin/settings', settings, { withCredentials: true });
-        if (res.data.success) alert('บันทึกการตั้งค่าเรียบร้อยแล้ว');
+        const response = await axios.get('http://localhost:5000/api/admin/users', { withCredentials: true });
+        if (response.data.success) {
+          setUsers(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+
+    const fetchCoupons = async () => {
+      try {
+        const res = await axios.get('http://localhost:5000/api/admin/coupons', { withCredentials: true });
+        if (res.data.success) setCoupons(res.data.data);
       } catch (err) { console.error(err); }
+    };
+
+    const fetchSettings = async () => {
+      try {
+        const res = await axios.get('http://localhost:5000/api/settings', { withCredentials: true });
+        if (res.data.success && res.data.data) {
+          // Merge with default to ensure banner exists
+          setSettings(prev => ({
+            ...prev,
+            ...res.data.data,
+            banner: { ...prev.banner, ...res.data.data.banner }
+          }));
+        }
+      } catch (err) { console.error(err); }
+    };
+
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchUsers(), fetchCoupons(), fetchSettings()]);
+      setLoading(false);
+    };
+
+    loadData();
+  }, [navigate, userId, userRole]);
+
+  const handleUpdateSettings = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      // 1. เซฟตั้งค่าอื่นๆ (ชื่อโปรโมชั่น, โค้ด) ลง Database ปกติ
+      const res = await axios.put('http://localhost:5000/api/admin/settings', settings, { withCredentials: true });
+      
+      // 2. 🌟 ยิง API ไปให้ server.js สร้างไฟล์ .txt 🌟
+      await axios.post('http://localhost:5000/api/admin/save-banner-file', {
+          content: settings?.banner?.content || ''
+      }, { withCredentials: true });
+
+      if (res.data.success) {
+         alert('บันทึกการตั้งค่า และอัปเดตไฟล์ BannerContent.txt เรียบร้อยแล้ว');
+      }
+    } catch (err) { 
+      console.error(err); 
+      alert('เกิดข้อผิดพลาดในการบันทึก');
+    }
+    setSaving(false);
+  };
+
+  const handleAddCoupon = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await axios.post('http://localhost:5000/api/admin/coupons', newCoupon, { withCredentials: true });
+      if (res.data.success) {
+        setCoupons([res.data.data, ...coupons]);
+        setIsModalOpen(false);
+        setNewCoupon({ code: '', discountType: 'percentage', discountValue: 0, minAmount: 0, expiryDate: '', usageLimit: 100 });
+      }
+    } catch (err) { console.error(err); }
+    setSaving(false);
+  };
+
+  const handleDeleteCoupon = async (id) => {
+    if (!window.confirm('ยืนยันการลบคูปองนี้?')) return;
+    try {
+      const res = await axios.delete(`http://localhost:5000/api/admin/coupons/${id}`, { withCredentials: true });
+      if (res.data.success) setCoupons(coupons.filter(c => c._id !== id));
+    } catch (err) { console.error(err); }
+  };
+
+  const handleUpdateStatus = async (userId, newStatus) => {
+    try {
+      const response = await axios.put(`http://localhost:5000/api/admin/users/${userId}/status`, { status: newStatus }, { withCredentials: true });
+      if (response.data.success) {
+        setUsers(users.map(u => u._id === userId ? { ...u, accountStatus: newStatus } : u));
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      alert("ไม่สามารถอัปเดตสถานะได้: " + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const response = await axios.put(`http://localhost:5000/api/admin/users/${editingUser._id}`, editingUser, { withCredentials: true });
+      if (response.data.success) {
+        setUsers(users.map(u => u._id === editingUser._id ? response.data.data : u));
+        setIsUserModalOpen(false);
+        alert("อัปเดตข้อมูลผู้ใช้สำเร็จ");
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+      alert("ไม่สามารถอัปเดตข้อมูลได้: " + (error.response?.data?.message || error.message));
+    } finally {
       setSaving(false);
-    };
-    
-    const handleAddCoupon = async (e) => {
-      e.preventDefault();
-      setSaving(true);
-      try {
-        const res = await axios.post('http://localhost:5000/api/admin/coupons', newCoupon, { withCredentials: true });
-        if (res.data.success) {
-          setCoupons([res.data.data, ...coupons]);
-          setIsModalOpen(false);
-          setNewCoupon({ code: '', discountType: 'percentage', discountValue: 0, minAmount: 0, expiryDate: '', usageLimit: 100 });
-        }
-      } catch (err) { console.error(err); }
+    }
+  };
+
+  const handleUpdateCoupon = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const response = await axios.put(`http://localhost:5000/api/admin/coupons/${editingCoupon._id}`, editingCoupon, { withCredentials: true });
+      if (response.data.success) {
+        setCoupons(coupons.map(c => c._id === editingCoupon._id ? response.data.data : c));
+        setIsCouponEditModalOpen(false);
+        alert("อัปเดตคูปองสำเร็จ");
+      }
+    } catch (error) {
+      console.error("Error updating coupon:", error);
+      alert("ไม่สามารถอัปเดตคูปองได้: " + (error.response?.data?.message || error.message));
+    } finally {
       setSaving(false);
-    };
-    
-    const handleDeleteCoupon = async (id) => {
-      if (!window.confirm('ยืนยันการลบคูปองนี้?')) return;
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้งานนี้? การกระทำนี้ไม่สามารถย้อนกลับได้")) return;
+
+    try {
+      const response = await axios.delete(`http://localhost:5000/api/admin/users/${userId}`, { withCredentials: true });
+      if (response.data.success) {
+        setUsers(users.filter(u => u._id !== userId));
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+    }
+  };
+
+  const filteredUsers = users.filter(user =>
+    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleClearAllData = async () => {
+      if (clearConfirmText !== 'CONFIRM') return;
+      setClearing(true);
       try {
-        const res = await axios.delete(`http://localhost:5000/api/admin/coupons/${id}`, { withCredentials: true });
-        if (res.data.success) setCoupons(coupons.filter(c => c._id !== id));
-      } catch (err) { console.error(err); }
-    };
+          const res = await axios.delete('http://localhost:5000/api/admin/clear-data', { withCredentials: true });
+          if (res.data.success) {
+              setClearResult(res.data.deleted);
+              setClearConfirmText('');
+          }
+      } catch (err) {
+          console.error(err);
+          alert('เกิดข้อผิดพลาด: ' + (err.response?.data?.message || err.message));
+      } finally {
+          setClearing(false);
+      }
+  };
 
-    const handleUpdateStatus = async (userId, newStatus) => {
-        try {
-            const response = await axios.put(`http://localhost:5000/api/admin/users/${userId}/status`, { status: newStatus }, { withCredentials: true });
-            if (response.data.success) {
-                setUsers(users.map(u => u._id === userId ? { ...u, accountStatus: newStatus } : u));
-            }
-        } catch (error) {
-            console.error("Error updating status:", error);
-            alert("ไม่สามารถอัปเดตสถานะได้: " + (error.response?.data?.message || error.message));
-        }
-    };
+  return (
+    <div className="min-h-screen bg-[#05050f] text-white font-sans pb-10">
+      <Navbar
+        currentUser={currentUser}
+        showDropdown={showDropdown}
+        setShowDropdown={setShowDropdown}
+      />
 
-    const handleUpdateUser = async (e) => {
-        e.preventDefault();
-        setSaving(true);
-        try {
-            const response = await axios.put(`http://localhost:5000/api/admin/users/${editingUser._id}`, editingUser, { withCredentials: true });
-            if (response.data.success) {
-                setUsers(users.map(u => u._id === editingUser._id ? response.data.data : u));
-                setIsUserModalOpen(false);
-                alert("อัปเดตข้อมูลผู้ใช้สำเร็จ");
-            }
-        } catch (error) {
-            console.error("Error updating user:", error);
-            alert("ไม่สามารถอัปเดตข้อมูลได้: " + (error.response?.data?.message || error.message));
-        } finally {
-            setSaving(false);
-        }
-    };
+      <div className="max-w-7xl mx-auto px-4 mt-8">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-gray-400 hover:text-white transition group mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm font-medium">Back</span>
+        </button>
 
-    const handleUpdateCoupon = async (e) => {
-        e.preventDefault();
-        setSaving(true);
-        try {
-            const response = await axios.put(`http://localhost:5000/api/admin/coupons/${editingCoupon._id}`, editingCoupon, { withCredentials: true });
-            if (response.data.success) {
-                setCoupons(coupons.map(c => c._id === editingCoupon._id ? response.data.data : c));
-                setIsCouponEditModalOpen(false);
-                alert("อัปเดตคูปองสำเร็จ");
-            }
-        } catch (error) {
-            console.error("Error updating coupon:", error);
-            alert("ไม่สามารถอัปเดตคูปองได้: " + (error.response?.data?.message || error.message));
-        } finally {
-            setSaving(false);
-        }
-    };
 
-    const handleDeleteUser = async (userId) => {
-        if (!window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้งานนี้? การกระทำนี้ไม่สามารถย้อนกลับได้")) return;
-        
-        try {
-            const response = await axios.delete(`http://localhost:5000/api/admin/users/${userId}`, { withCredentials: true });
-            if (response.data.success) {
-                setUsers(users.filter(u => u._id !== userId));
-            }
-        } catch (error) {
-            console.error("Error deleting user:", error);
-        }
-    };
 
-    const filteredUsers = users.filter(user => 
-        user.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+        {/* Tabs */}
+        <div className="flex items-center gap-8 border-b border-[#2a2a3e] mb-8">
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`pb-4 text-sm font-bold transition-all relative flex items-center gap-2 ${activeTab === 'users' ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            <Users className="w-4 h-4" /> Users
+            {activeTab === 'users' && <div className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]"></div>}
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`pb-4 text-sm font-bold transition-all relative flex items-center gap-2 ${activeTab === 'settings' ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            <Settings className="w-4 h-4" /> Site Settings
+            {activeTab === 'settings' && <div className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]"></div>}
+          </button>
+          <button
+            onClick={() => setActiveTab('coupons')}
+            className={`pb-4 text-sm font-bold transition-all relative flex items-center gap-2 ${activeTab === 'coupons' ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            <Ticket className="w-4 h-4" /> Coupons
+            {activeTab === 'coupons' && <div className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]"></div>}
+          </button>
+        </div>
 
-    const handleClearAllData = async () => {
-        if (clearConfirmText !== 'CONFIRM') return;
-        setClearing(true);
-        try {
-            const res = await axios.delete('http://localhost:5000/api/admin/clear-data', { withCredentials: true });
-            if (res.data.success) {
-                setClearResult(res.data.deleted);
-                setClearConfirmText('');
-            }
-        } catch (err) {
-            console.error(err);
-            alert('เกิดข้อผิดพลาด: ' + (err.response?.data?.message || err.message));
-        } finally {
-            setClearing(false);
-        }
-    };
+        {activeTab === 'users' && (
+          <div className="bg-[#0a0a16] border border-[#2a2a3e] rounded-2xl overflow-hidden shadow-xl">
+            <div className="p-6 border-b border-[#2a2a3e] flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="relative flex-1 max-w-md">
+                <input
+                  type="text"
+                  placeholder="Search users by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-[#151522] border border-[#2a2a3e] rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:border-[#8b2cf5] transition-all text-sm text-gray-200"
+                />
+                <Search className="w-4 h-4 text-gray-500 absolute left-3 top-2.5" />
+              </div>
+            </div>
 
-    return (
-        <div className="min-h-screen bg-[#05050f] text-white font-sans pb-10">
-            <Navbar 
-                currentUser={currentUser} 
-                showDropdown={showDropdown} 
-                setShowDropdown={setShowDropdown} 
-            />
-
-            <div className="max-w-7xl mx-auto px-4 mt-8">
-                <button 
-                    onClick={() => navigate(-1)}
-                    className="flex items-center gap-2 text-gray-400 hover:text-white transition group mb-6"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span className="text-sm font-medium">Back</span>
-                </button>
-
-                <h1 className="text-3xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">
-                    Admin Dashboard
-                </h1>
 
                 {/* Tabs */}
                 <div className="flex items-center gap-8 border-b border-[#2a2a3e] mb-8">
@@ -561,8 +615,9 @@ const AdminDashboard = () => {
                         </div>
                     </div>
                 )}
-            </div>
-          {/* Modal: สร้างคูปอง */}
+
+      </div>
+      {/* Modal: สร้างคูปอง */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#0a0a16] border border-[#2a2a3e] rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
@@ -574,10 +629,10 @@ const AdminDashboard = () => {
             <form onSubmit={handleAddCoupon} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-xs text-gray-400">โค้ดคูปอง (เช่น SUMMER50)</label>
-                <input 
+                <input
                   type="text" required
                   value={newCoupon.code || ''}
-                  onChange={(e) => setNewCoupon({...newCoupon, code: (e.target.value || '').toUpperCase()})}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, code: (e.target.value || '').toUpperCase() })}
                   className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
                 />
               </div>
@@ -585,9 +640,9 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs text-gray-400">ประเภท</label>
-                  <select 
+                  <select
                     value={newCoupon.discountType}
-                    onChange={(e) => setNewCoupon({...newCoupon, discountType: e.target.value})}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, discountType: e.target.value })}
                     className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
                   >
                     <option value="percentage">เปอร์เซ็นต์ (%)</option>
@@ -596,10 +651,10 @@ const AdminDashboard = () => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-gray-400">มูลค่า</label>
-                  <input 
+                  <input
                     type="number" required
                     value={newCoupon.discountValue}
-                    onChange={(e) => setNewCoupon({...newCoupon, discountValue: Number(e.target.value)})}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, discountValue: Number(e.target.value) })}
                     className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
                   />
                 </div>
@@ -608,19 +663,19 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs text-gray-400">ขั้นต่ำ (฿)</label>
-                  <input 
+                  <input
                     type="number"
                     value={newCoupon.minAmount}
-                    onChange={(e) => setNewCoupon({...newCoupon, minAmount: Number(e.target.value)})}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, minAmount: Number(e.target.value) })}
                     className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-gray-400">วันหมดอายุ</label>
-                  <input 
+                  <input
                     type="date" required
                     value={newCoupon.expiryDate}
-                    onChange={(e) => setNewCoupon({...newCoupon, expiryDate: e.target.value})}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, expiryDate: e.target.value })}
                     className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2 text-white"
                   />
                 </div>
@@ -628,15 +683,15 @@ const AdminDashboard = () => {
 
               <div className="space-y-2">
                 <label className="text-xs text-gray-400">จำกัดจำนวนครั้ง</label>
-                <input 
+                <input
                   type="number"
                   value={newCoupon.usageLimit}
-                  onChange={(e) => setNewCoupon({...newCoupon, usageLimit: Number(e.target.value)})}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, usageLimit: Number(e.target.value) })}
                   className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
                 />
               </div>
 
-              <button 
+              <button
                 type="submit" disabled={saving}
                 className="w-full py-3 bg-yellow-500 text-black font-bold rounded-xl mt-4 hover:bg-yellow-400 transition"
               >
@@ -656,53 +711,53 @@ const AdminDashboard = () => {
             </div>
 
             <form onSubmit={handleUpdateUser} className="space-y-4">
-               {/* Forms fields for user */}
-               <div className="space-y-2">
+              {/* Forms fields for user */}
+              <div className="space-y-2">
                 <label className="text-xs text-gray-400">Username</label>
-                <input 
+                <input
                   type="text" required
                   value={editingUser.username}
-                  onChange={(e) => setEditingUser({...editingUser, username: e.target.value})}
+                  onChange={(e) => setEditingUser({ ...editingUser, username: e.target.value })}
                   className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-xs text-gray-400">Email</label>
-                <input 
+                <input
                   type="email" required
                   value={editingUser.email}
-                  onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
                   className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <label className="text-xs text-gray-400">Role</label>
-                    <select 
-                        value={editingUser.role}
-                        onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
-                        className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
-                    >
-                        <option value="user">User</option>
-                        <option value="official_store">Official Store</option>
-                        <option value="admin">Admin</option>
-                    </select>
+                  <label className="text-xs text-gray-400">Role</label>
+                  <select
+                    value={editingUser.role}
+                    onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                    className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
+                  >
+                    <option value="user">User</option>
+                    <option value="official_store">Official Store</option>
+                    <option value="admin">Admin</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
-                    <label className="text-xs text-gray-400">Status</label>
-                    <select 
-                        value={editingUser.accountStatus}
-                        onChange={(e) => setEditingUser({...editingUser, accountStatus: e.target.value})}
-                        className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
-                    >
-                        <option value="active">Active</option>
-                        <option value="suspended">Suspended</option>
-                        <option value="banned">Banned</option>
-                    </select>
+                  <label className="text-xs text-gray-400">Status</label>
+                  <select
+                    value={editingUser.accountStatus}
+                    onChange={(e) => setEditingUser({ ...editingUser, accountStatus: e.target.value })}
+                    className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
+                  >
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="banned">Banned</option>
+                  </select>
                 </div>
               </div>
 
-              <button 
+              <button
                 type="submit" disabled={saving}
                 className="w-full py-3 bg-[#8b2cf5] text-white font-bold rounded-xl mt-4 hover:bg-[#7220c7] transition"
               >
@@ -725,10 +780,10 @@ const AdminDashboard = () => {
             <form onSubmit={handleUpdateCoupon} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-xs text-gray-400">โค้ดคูปอง</label>
-                <input 
+                <input
                   type="text" required
                   value={editingCoupon.code}
-                  onChange={(e) => setEditingCoupon({...editingCoupon, code: e.target.value.toUpperCase()})}
+                  onChange={(e) => setEditingCoupon({ ...editingCoupon, code: e.target.value.toUpperCase() })}
                   className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
                 />
               </div>
@@ -736,9 +791,9 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs text-gray-400">ประเภท</label>
-                  <select 
+                  <select
                     value={editingCoupon.discountType}
-                    onChange={(e) => setEditingCoupon({...editingCoupon, discountType: e.target.value})}
+                    onChange={(e) => setEditingCoupon({ ...editingCoupon, discountType: e.target.value })}
                     className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
                   >
                     <option value="percentage">เปอร์เซ็นต์ (%)</option>
@@ -747,10 +802,10 @@ const AdminDashboard = () => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-gray-400">มูลค่า</label>
-                  <input 
+                  <input
                     type="number" required
                     value={editingCoupon.discountValue}
-                    onChange={(e) => setEditingCoupon({...editingCoupon, discountValue: Number(e.target.value)})}
+                    onChange={(e) => setEditingCoupon({ ...editingCoupon, discountValue: Number(e.target.value) })}
                     className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
                   />
                 </div>
@@ -759,19 +814,19 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs text-gray-400">ขั้นต่ำ (฿)</label>
-                  <input 
+                  <input
                     type="number"
                     value={editingCoupon.minAmount}
-                    onChange={(e) => setEditingCoupon({...editingCoupon, minAmount: Number(e.target.value)})}
+                    onChange={(e) => setEditingCoupon({ ...editingCoupon, minAmount: Number(e.target.value) })}
                     className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-gray-400">วันหมดอายุ</label>
-                  <input 
+                  <input
                     type="date" required
                     value={editingCoupon.expiryDate?.split('T')[0]}
-                    onChange={(e) => setEditingCoupon({...editingCoupon, expiryDate: e.target.value})}
+                    onChange={(e) => setEditingCoupon({ ...editingCoupon, expiryDate: e.target.value })}
                     className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2 text-white"
                   />
                 </div>
@@ -779,15 +834,15 @@ const AdminDashboard = () => {
 
               <div className="space-y-2">
                 <label className="text-xs text-gray-400">จำกัดจำนวนครั้ง</label>
-                <input 
+                <input
                   type="number"
                   value={editingCoupon.usageLimit}
-                  onChange={(e) => setEditingCoupon({...editingCoupon, usageLimit: Number(e.target.value)})}
+                  onChange={(e) => setEditingCoupon({ ...editingCoupon, usageLimit: Number(e.target.value) })}
                   className="w-full bg-[#12121e] border border-[#2a2a3e] rounded-xl px-4 py-2"
                 />
               </div>
 
-              <button 
+              <button
                 type="submit" disabled={saving}
                 className="w-full py-3 bg-yellow-500 text-black font-bold rounded-xl mt-4 hover:bg-yellow-400 transition"
               >

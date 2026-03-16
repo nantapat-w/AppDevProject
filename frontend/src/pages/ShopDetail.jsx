@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Store, Star, MapPin, Plus, Package, X, Upload, Image as ImageIcon, Trash2, ShieldCheck, Calendar, Hash, MessageCircle, UserCheck, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Store, Star, MapPin, Plus, Package, X, Upload, Image as ImageIcon, Trash2, ShieldCheck, Calendar, Hash, MessageCircle, UserCheck, Clock, Pencil, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 import { axiosInstance } from '../utils/axios';
 
@@ -26,6 +26,17 @@ const ShopDetail = () => {
     tradeType: 'BOTH',
   });
 
+  // ✏️ State Modal แก้ไขร้านค้า
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ shopName: '', shopDescription: '' });
+  const [editLogoFile, setEditLogoFile] = useState(null);
+  const [editLogoPreview, setEditLogoPreview] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+
+  // 🗑️ State Modal ลบร้านค้า
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   let currentUser = null;
   try {
     const userStr = localStorage.getItem('user');
@@ -41,10 +52,13 @@ const ShopDetail = () => {
         // 1. ดึงข้อมูลร้านค้า
         const shopRes = await axios.get(`http://localhost:5000/api/shops/${id}`);
         if (shopRes.data.success || shopRes.data) {
-          setShop(shopRes.data.data || shopRes.data);
+          const shopData = shopRes.data.data || shopRes.data;
+          setShop(shopData);
+          setEditForm({ shopName: shopData.shopName, shopDescription: shopData.shopDescription || '' });
+          setEditLogoPreview(shopData.shopLogo || null);
         }
 
-        // 2. ดึงข้อมูลสินค้าของร้านนี้ (เรียก API ของเพื่อนเลย!)
+        // 2. ดึงข้อมูลสินค้าของร้านนี้
         const productRes = await axios.get(`http://localhost:5000/api/products/shop/${id}`);
         if (productRes.data.success) {
           setProducts(productRes.data.data);
@@ -66,11 +80,18 @@ const ShopDetail = () => {
     }
   };
 
+  const handleEditLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setEditLogoFile(file);
+      setEditLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleAddProduct = async (e) => {
     e.preventDefault();
     if (!productForm.productName) return alert('กรุณากรอกชื่อสินค้า');
 
-    // 🟢 ห่อของใส่กล่อง FormData เพื่อส่งรูปภาพไปหลังบ้าน
     const formData = new FormData();
     formData.append('productName', productForm.productName);
     formData.append('productDescription', productForm.description);
@@ -80,14 +101,13 @@ const ShopDetail = () => {
     formData.append('tradeType', productForm.tradeType);
     formData.append('shopId', id);
 
-    // 🟢 ถ้ายูสเซอร์เลือกรูปภาพมา ให้ยัดใส่กล่องชื่อ 'image' ไปด้วย
     if (productFile) {
       formData.append('image', productFile);
     }
 
     try {
       const res = await axios.post(`http://localhost:5000/api/products`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }, // 🟢 สำคัญมาก! บอกหลังบ้านว่านี่คือไฟล์
+        headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true
       });
 
@@ -120,6 +140,60 @@ const ShopDetail = () => {
     }
   };
 
+  // ✏️ แก้ไขร้านค้า
+  const handleUpdateShop = async (e) => {
+    e.preventDefault();
+    if (!editForm.shopName.trim()) return alert('กรุณากรอกชื่อร้านค้า');
+    setEditLoading(true);
+
+    const formData = new FormData();
+    formData.append('shopName', editForm.shopName.trim());
+    formData.append('shopDescription', editForm.shopDescription.trim());
+    if (editLogoFile) {
+      formData.append('shopLogo', editLogoFile);
+    }
+
+    try {
+      const res = await axios.put(`http://localhost:5000/api/shops/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        withCredentials: true
+      });
+
+      if (res.data.success) {
+        setShop(res.data.data);
+        setShowEditModal(false);
+        setEditLogoFile(null);
+        alert('✅ อัปเดตข้อมูลร้านค้าเรียบร้อยแล้ว!');
+      }
+    } catch (error) {
+      console.error("Update shop error:", error.response?.data || error);
+      alert(`Error: ${error.response?.data?.message || 'อัปเดตไม่ได้ เช็ค Backend'}`);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // 🗑️ ลบร้านค้า
+  const handleDeleteShop = async () => {
+    setDeleteLoading(true);
+    try {
+      const res = await axios.delete(`http://localhost:5000/api/shops/${id}`, {
+        withCredentials: true
+      });
+
+      if (res.data.success) {
+        alert('🗑️ ลบร้านค้าเรียบร้อยแล้ว');
+        navigate('/shops');
+      }
+    } catch (error) {
+      console.error("Delete shop error:", error.response?.data || error);
+      alert(`Error: ${error.response?.data?.message || 'ลบร้านไม่ได้ เช็ค Backend'}`);
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   if (loading) return <div className="min-h-screen flex justify-center items-center bg-[#05050f]"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[#8b2cf5]"></div></div>;
   if (!shop) return <div className="min-h-screen flex justify-center items-center bg-[#05050f] text-white">ไม่พบข้อมูลร้านค้านี้</div>;
 
@@ -127,16 +201,8 @@ const ShopDetail = () => {
   const isAdmin = currentUser?.role === 'admin';
   const canManage = isOwner || isAdmin;
 
-  // 🗑️ Admin: ลบร้านค้าทั้งหมด
-  const handleDeleteShop = async () => {
-    if (!window.confirm(`ลบร้านค้า "${shop.shopName}" ออกจากระบบ? \nสินค้าทั้งหมดในร้านจะถูกลบด้วย!`)) return;
-    try {
-      await axiosInstance.delete(`/shops/${shop._id}`);
-      navigate('/shops');
-    } catch (error) {
-      alert(error.response?.data?.message || 'ลบไม่สำเร็จ');
-    }
-  };
+
+
 
   return (
     <div className="min-h-screen bg-[#05050f] text-white font-sans pb-10 relative">
@@ -161,10 +227,33 @@ const ShopDetail = () => {
             </div>
           </div>
 
+          {/* ปุ่มเจ้าของร้านเท่านั้น */}
           {isOwner && (
-            <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] text-white px-6 py-3 rounded-xl font-bold text-sm transition transform hover:-translate-y-1">
-              <Plus className="w-5 h-5" /> เพิ่มสินค้าใหม่
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-2 bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] text-white px-5 py-2.5 rounded-xl font-bold text-sm transition transform hover:-translate-y-1"
+              >
+                <Plus className="w-4 h-4" /> เพิ่มสินค้า
+              </button>
+              <button
+                onClick={() => {
+                  setEditForm({ shopName: shop.shopName, shopDescription: shop.shopDescription || '' });
+                  setEditLogoPreview(shop.shopLogo || null);
+                  setEditLogoFile(null);
+                  setShowEditModal(true);
+                }}
+                className="flex items-center gap-2 bg-[#1a1a2e] border border-[#2a2a3e] hover:border-[#8b2cf5] text-white px-5 py-2.5 rounded-xl font-bold text-sm transition transform hover:-translate-y-1"
+              >
+                <Pencil className="w-4 h-4 text-[#8b2cf5]" /> แก้ไขร้านค้า
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-2 bg-[#1a0a0a] border border-[#3e2a2a] hover:border-red-500 text-red-400 hover:text-red-300 px-5 py-2.5 rounded-xl font-bold text-sm transition transform hover:-translate-y-1"
+              >
+                <Trash2 className="w-4 h-4" /> ลบร้านค้า
+              </button>
+            </div>
           )}
           {isAdmin && (
             <button
@@ -307,7 +396,6 @@ const ShopDetail = () => {
             <Package className="w-6 h-6 text-[#8b2cf5]" /> สินค้าทั้งหมด ({products.length})
           </h2>
 
-          {/* 🟢 ส่วนแสดงสินค้า ถ้ายาวมากกว่า 0 ให้โชว์การ์ด ถ้าไม่มีให้โชว์ว่าว่างเปล่า */}
           {products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 bg-[#12121e] border border-[#2a2a3e] rounded-2xl border-dashed">
               <Package className="w-16 h-16 text-[#2a2a3e] mb-4" />
@@ -364,7 +452,7 @@ const ShopDetail = () => {
       </div>
 
 
-      {/* 🌟 MODAL เพิ่มสินค้า 🌟 (ส่วนนี้เหมือนเดิมเลย) */}
+      {/* 🌟 MODAL เพิ่มสินค้า 🌟 */}
       {showAddModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
           <div className="bg-[#12121e] border border-[#2a2a3e] w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in duration-200 my-8">
@@ -451,6 +539,123 @@ const ShopDetail = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ✏️ MODAL แก้ไขร้านค้า */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#12121e] border border-[#2a2a3e] w-full max-w-md rounded-2xl overflow-hidden shadow-2xl">
+            <div className="p-4 border-b border-[#2a2a3e] flex justify-between items-center bg-[#0a0a16]">
+              <h3 className="font-bold flex items-center gap-2 text-white"><Pencil className="w-5 h-5 text-[#8b2cf5]" /> แก้ไขข้อมูลร้านค้า</h3>
+              <button onClick={() => setShowEditModal(false)} className="hover:bg-[#2a2a3e] p-1.5 rounded-lg transition"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+
+            <form onSubmit={handleUpdateShop} className="p-6 space-y-5">
+              {/* โลโก้ร้าน */}
+              <div className="flex flex-col items-center gap-3">
+                <label className="relative w-24 h-24 rounded-2xl border-2 border-dashed border-[#2a2a3e] hover:border-[#8b2cf5] flex flex-col items-center justify-center cursor-pointer bg-[#0a0a16] transition overflow-hidden group">
+                  {editLogoPreview ? (
+                    <>
+                      <img src={editLogoPreview} alt="Logo preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                        <Upload className="w-5 h-5 text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Store className="w-8 h-8 text-gray-500 mb-1" />
+                      <span className="text-[10px] text-gray-400">เปลี่ยนโลโก้</span>
+                    </>
+                  )}
+                  <input type="file" accept="image/*" onChange={handleEditLogoChange} className="hidden" />
+                </label>
+                <p className="text-xs text-gray-500">คลิกที่รูปเพื่อเปลี่ยนโลโก้ร้าน</p>
+              </div>
+
+              {/* ชื่อร้าน */}
+              <div>
+                <label className="text-xs text-gray-400 block mb-1.5 ml-1">ชื่อร้านค้า <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={editForm.shopName}
+                  onChange={(e) => setEditForm({ ...editForm, shopName: e.target.value })}
+                  placeholder="ชื่อร้านค้า..."
+                  maxLength={50}
+                  className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition text-white"
+                  required
+                />
+              </div>
+
+              {/* คำอธิบาย */}
+              <div>
+                <label className="text-xs text-gray-400 block mb-1.5 ml-1">คำอธิบายร้านค้า</label>
+                <textarea
+                  rows="3"
+                  value={editForm.shopDescription}
+                  onChange={(e) => setEditForm({ ...editForm, shopDescription: e.target.value })}
+                  placeholder="แนะนำร้านของคุณ..."
+                  className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8b2cf5] transition resize-none text-white"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 py-3 bg-[#1a1a2e] border border-[#2a2a3e] rounded-xl font-bold text-sm text-gray-300 hover:border-[#8b2cf5] transition"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="flex-1 py-3 bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(139,44,245,0.3)] hover:scale-[1.02] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {editLoading ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🗑️ MODAL ยืนยันลบร้านค้า */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#12121e] border border-red-900/50 w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl">
+            <div className="p-4 border-b border-red-900/30 flex justify-between items-center bg-[#1a0a0a]">
+              <h3 className="font-bold flex items-center gap-2 text-red-400"><AlertTriangle className="w-5 h-5" /> ยืนยันการลบร้านค้า</h3>
+              <button onClick={() => setShowDeleteModal(false)} className="hover:bg-[#2a1a1a] p-1.5 rounded-lg transition"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+                <p className="text-red-300 text-sm font-medium mb-1">⚠️ การดำเนินการนี้ไม่สามารถย้อนกลับได้!</p>
+                <p className="text-gray-400 text-xs leading-relaxed">
+                  เมื่อลบร้านค้า <span className="text-white font-bold">"{shop.shopName}"</span> แล้ว ข้อมูลร้านค้าจะถูกลบออกจากระบบถาวร
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={deleteLoading}
+                  className="flex-1 py-3 bg-[#1a1a2e] border border-[#2a2a3e] rounded-xl font-bold text-sm text-gray-300 hover:border-[#8b2cf5] transition"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={handleDeleteShop}
+                  disabled={deleteLoading}
+                  className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-500 rounded-xl font-bold text-sm hover:scale-[1.02] transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {deleteLoading ? 'กำลังลบ...' : 'ลบร้านค้า'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

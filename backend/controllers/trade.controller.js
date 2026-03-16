@@ -188,8 +188,9 @@ export const completeTrade = async (req, res) => {
             linkId: trade._id
         });
 
-        await User.updateMany(
-            { _id: { $in: [trade.requestId, trade.receiveId] } },
+        // อัปเดต stats เฉพาะคนที่กดปุ่ม Complete (ผู้ยื่นข้อเสนอ)
+        await User.updateOne(
+            { _id: req.user._id },
             { $inc: { tradeCount: 1, successfulTrade: 1 } }
         );
 

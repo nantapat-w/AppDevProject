@@ -11,6 +11,7 @@ const Home = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [siteSettings, setSiteSettings] = useState(null);
+  const [userData, setUserData] = useState(JSON.parse(localStorage.getItem('user')));
 
   // 🛠️ Helper: รองรับทั้ง relative path (/uploads/xxx) และ absolute URL (http://...)
   const getImageUrl = (path) => {
@@ -18,16 +19,36 @@ const Home = () => {
     if (path.startsWith('http')) return path;
     return `http://localhost:5000${path}`;
   };
-  
+
   const [showDropdown, setShowDropdown] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('user'));
+
+  const fetchMyProfile = async () => { //หน้าโปรไฟล์
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    if (!currentUser) return;
+    try {
+      const targetId = currentUser.id || currentUser._id;
+      const res = await axios.get(`http://localhost:5000/api/auth/profile/${targetId}`, { withCredentials: true });
+      if (res.data.success) {
+        setUserData(res.data.data);
+        localStorage.setItem('user', JSON.stringify(res.data.data));
+      }
+    } catch (err) {
+      console.error("Fetch profile error", err);
+    }
+  };
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/products');
         if (response.data.success) {
-          setProducts(response.data.data);
+          //เรียงลำดับจากวันที่สร้างล่าสุด (ใหม่สุดอยู่บนสุด)
+          const sortedProducts = response.data.data.sort((a, b) => {
+            return new Date(b.createdAt) - new Date(a.createdAt);
+          });
+          //ตัดเอามาแค่ 1 ชิ้นแรก (1 แถว แถวละ 4 ชิ้น)
+          setProducts(sortedProducts.slice(0, 4));
         }
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -49,6 +70,7 @@ const Home = () => {
 
     fetchProducts();
     fetchSiteSettings();
+    fetchMyProfile();
   }, []);
 
   const handleAdminDeleteProduct = async (e, productId) => {
@@ -66,12 +88,10 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-[#05050f] text-white font-sans pb-10">
-      
-      {/* 🟢 Navbar */}
-      <Navbar 
-        currentUser={currentUser} 
-        showDropdown={showDropdown} 
-        setShowDropdown={setShowDropdown} 
+      <Navbar
+        currentUser={userData} // ต้องเป็น userData ที่ผ่านการ fetchMyProfile แล้ว
+        showDropdown={showDropdown}
+        setShowDropdown={setShowDropdown}
       />
 
       {/* 🟢 Hero Section */}
@@ -81,13 +101,16 @@ const Home = () => {
             <div className="absolute top-0 right-0 w-72 h-72 bg-[#8b2cf5] opacity-20 blur-[100px] rounded-full group-hover:opacity-40 transition-opacity duration-500"></div>
             <span className="text-xs font-bold tracking-wider text-[#8b2cf5] mb-2 uppercase">PROMOTION</span>
             <h1 className="text-4xl font-bold mb-3 z-10 leading-tight">
-              {siteSettings?.banner?.title || "เทศกาลแลกของ"} <br/>
+              {siteSettings?.banner?.title || "เทศกาลแลกของ"} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">
                 {siteSettings?.banner?.subtitle || "ลดค่าธรรมเนียม 50%"}
               </span>
             </h1>
             <p className="text-gray-400 mb-6 z-10">{siteSettings?.banner?.description || `ใช้โค้ด "TRADE50" เมื่อทำการยืนยันการแลกเปลี่ยน`}</p>
-            <button className="w-fit bg-[#8b2cf5] text-white font-medium py-2.5 px-8 rounded-md hover:bg-[#7220c7] transition z-10">
+            <button
+              onClick={() => navigate('/banner')}
+              className="w-fit bg-[#8b2cf5] text-white font-medium py-2.5 px-8 rounded-md hover:bg-[#7220c7] transition z-10"
+            >
               {siteSettings?.banner?.buttonText || "ดูรายละเอียด"}
             </button>
           </div>
@@ -120,8 +143,16 @@ const Home = () => {
       </div>
 
       {/* 🟢 Product Grid */}
+
       <div className="max-w-7xl mx-auto px-4 mt-10">
-        <h2 className="text-xl font-bold mb-6 border-l-4 border-[#8b2cf5] pl-3">ไอเทมมาใหม่</h2>
+        <div className="flex justify-between items-end mb-6">
+          <h2 className="text-xl font-bold border-l-4 border-[#8b2cf5] pl-3">สินค้ามาใหม่</h2>
+
+          {/* เพิ่มปุ่มกดไปหน้าค้นหา เพื่อดูสินค้าทั้งหมด */}
+          <Link to="/search" className="text-sm font-medium text-[#8b2cf5] hover:text-white transition-colors">
+            ดูทั้งหมด &gt;
+          </Link>
+        </div>
 
         {loading ? (
           <div className="flex justify-center items-center py-20">
@@ -136,8 +167,8 @@ const Home = () => {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {products.map((item) => (
-              <div 
-                key={item._id} 
+              <div
+                key={item._id}
                 className="bg-[#12121e] rounded-md border border-[#2a2a3e] overflow-hidden hover:border-[#8b2cf5] hover:-translate-y-1 transition-all cursor-pointer group flex flex-col"
                 onClick={() => navigate(`/product/${item._id}`)}
               >
@@ -156,9 +187,9 @@ const Home = () => {
                     </button>
                   )}
                   {item.images && item.images.length > 0 ? (
-                    <img 
-                      src={getImageUrl(item.images[0])} 
-                      alt={item.productName} 
+                    <img
+                      src={getImageUrl(item.images[0])}
+                      alt={item.productName}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       onError={(e) => {
                         e.target.style.display = 'none';
@@ -178,12 +209,12 @@ const Home = () => {
                   <h3 className="text-sm font-medium text-gray-200 line-clamp-2 mb-2 group-hover:text-white">
                     {item.productName}
                   </h3>
-                  
+
                   <div className="mt-auto">
                     <div className="text-[#8b2cf5] font-bold text-lg mb-1">
                       {item.tradeType === 'TRADE_ONLY' ? 'เสนอแลก' : `฿ ${item.price?.toLocaleString() || 0}`}
                     </div>
-                    
+
                     <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-[#2a2a3e]">
                       <span className="truncate w-24 hover:text-white">{item.ownerId?.username || 'Unknown User'}</span>
                       <div className="flex items-center gap-1">

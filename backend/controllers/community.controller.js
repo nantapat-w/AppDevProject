@@ -73,7 +73,7 @@ export const getPostById = async (req, res) => {
 // ✏️ 4. (ฟีเจอร์ใหม่) แก้ไขโพสต์
 export const updatePost = async (req, res) => {
     try {
-        const { content, images, tags } = req.body;
+        const { content, postType, tags, keepImages } = req.body;
 
         let post = await Community.findById(req.params.id);
         if (!post) return res.status(404).json({ success: false, message: "ไม่พบโพสต์" });
@@ -85,9 +85,31 @@ export const updatePost = async (req, res) => {
 
         // อัปเดตข้อมูลและเปลี่ยนสถานะเป็น EDITED
         post.content = content || post.content;
-        post.images = images || post.images;
-        post.tags = tags || post.tags;
+        if (postType) post.postType = postType;
+        post.tags = tags ? (typeof tags === 'string' ? JSON.parse(tags) : tags) : post.tags;
         post.status = "EDITED";
+
+        // จัดการรูปภาพ:
+        // keepImages = รูปเดิมที่ user ต้องการเก็บไว้ (เป็น JSON string array ของ URL)
+        // req.files = รูปใหม่ที่ upload ขึ้น Cloudinary
+        let finalImages = [];
+
+        // เก็บรูปเดิมที่ user เลือกไว้
+        if (keepImages) {
+            const kept = typeof keepImages === 'string' ? JSON.parse(keepImages) : keepImages;
+            finalImages = Array.isArray(kept) ? kept : [];
+        }
+
+        // เพิ่มรูปใหม่ที่ upload ขึ้น Cloudinary
+        if (req.files && req.files.length > 0) {
+            const newUrls = req.files.map(file => file.path);
+            finalImages = [...finalImages, ...newUrls];
+        }
+
+        // อัปเดตรูปเฉพาะเมื่อมีการส่งข้อมูลรูปมา (ไม่ว่าจะ keep หรือ upload ใหม่)
+        if (keepImages !== undefined || (req.files && req.files.length > 0)) {
+            post.images = finalImages;
+        }
 
         await post.save();
         res.status(200).json({ success: true, message: "แก้ไขโพสต์สำเร็จ", data: post });

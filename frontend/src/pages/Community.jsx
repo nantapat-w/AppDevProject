@@ -3,12 +3,13 @@ import {
     Search, Bell, User, Star, Repeat, Users, MessageSquare,
     LogOut, Store, Heart, MessageCircle, Plus, X, ChevronLeft,
     ChevronRight, Image, Send, Flame, BookOpen, ThumbsUp, AlertTriangle,
-    PackageSearch, Sparkles, PackageOpen, Check, Camera, Video, Trash2, Share2
+    PackageSearch, Sparkles, PackageOpen, Check, Camera, Video, Trash2, Share2,
+    MoreHorizontal, Pencil
 } from 'lucide-react';
 import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/logo0.png';
-
+import Navbar from '../components/Navbar';
 
 // ---------- utils ----------
 const API = 'http://localhost:5000/api';
@@ -63,8 +64,9 @@ const Community = () => {
     const currentUser = JSON.parse(localStorage.getItem('user'));
 
     const [posts, setPosts] = useState([]);
+    const [userData, setUserData] = useState(currentUser); // ใช้เก็บข้อมูลโปรไฟล์ล่าสุด
+    const [showDropdown, setShowDropdown] = useState(false); // ควบคุม Dropdown
     const [loading, setLoading] = useState(true);
-    const [userData, setUserData] = useState(currentUser); // เก็บข้อมูลผู้ใช้ที่เป็นปัจจุบันที่สุด
 
     // ฟังก์ชันดึงโปรไฟล์ล่าสุดจาก Server เพื่ออัปเดตรูปมุมขวาบน
     const fetchMyProfile = async () => {
@@ -88,7 +90,6 @@ const Community = () => {
 
     const [activeFilter, setActiveFilter] = useState('ALL');
     const [searchText, setSearchText] = useState('');
-    const [showDropdown, setShowDropdown] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [friends, setFriends] = useState([]);
 
@@ -101,6 +102,10 @@ const Community = () => {
     const [video, setVideo] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
+
+    // 🟢 Edit Post State (อยู่ที่ Community level เพื่อให้ Modal ไม่ติด z-index)
+    const [editingPost, setEditingPost] = useState(null); // { _id, content, postType, existingImages, newImages }
+    const [editSubmitting, setEditSubmitting] = useState(false);
 
     const fetchPosts = async () => {
         setLoading(true);
@@ -147,7 +152,7 @@ const Community = () => {
         fetchFriends();
         fetchNotifications();
     }, [activeFilter]);
-    
+
     const scrolledPostRef = useRef(null);
 
     // Scroll to specific post if navigated from notification
@@ -155,7 +160,7 @@ const Community = () => {
         if (!loading && posts.length > 0) {
             const queryParams = new URLSearchParams(location.search);
             const postId = queryParams.get('postId');
-            
+
             if (postId && scrolledPostRef.current !== postId) {
                 const element = document.getElementById(`post-${postId}`);
                 if (element) {
@@ -167,7 +172,7 @@ const Community = () => {
                         setTimeout(() => {
                             element.classList.remove('ring-2', 'ring-[#8b2cf5]', 'ring-offset-2', 'ring-offset-[#12121e]');
                         }, 3000);
-                        
+
                         // Clear the postId from URL so it doesn't scroll again on manual refresh
                         window.history.replaceState({}, document.title, window.location.pathname);
                     }, 500); // Wait a bit for images to load
@@ -238,6 +243,38 @@ const Community = () => {
                 setPosts(prev => prev.filter(p => p._id !== postId));
             }
         } catch (err) { console.error('delete post error', err); alert('ไม่สามารถลบโพสต์ได้'); }
+    };
+
+    const handleEditPost = async (postId, editData) => {
+        try {
+            const formData = new FormData();
+            formData.append('content', editData.content);
+            formData.append('postType', editData.postType);
+            formData.append('keepImages', JSON.stringify(editData.existingImages || []));
+
+            // เพิ่มรูปใหม่ที่เลือกไว้
+            if (editData.newImages && editData.newImages.length > 0) {
+                editData.newImages.forEach(img => formData.append('images', img));
+            }
+
+            const res = await axios.put(`${API}/community/${postId}`, formData, {
+                withCredentials: true,
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            if (res.data.success) {
+                setPosts(prev => prev.map(p => {
+                    if (p._id !== postId) return p;
+                    return {
+                        ...p,
+                        content: res.data.data.content,
+                        postType: res.data.data.postType,
+                        status: res.data.data.status,
+                        tags: res.data.data.tags || p.tags,
+                        images: res.data.data.images || [],
+                    };
+                }));
+            }
+        } catch (err) { console.error('edit post error', err); alert(err.response?.data?.message || 'ไม่สามารถแก้ไขโพสต์ได้'); }
     };
 
     const handleImageChange = (e) => {
@@ -321,82 +358,11 @@ const Community = () => {
     return (
         <div className="min-h-screen bg-[#05050f] text-white font-sans">
             {/* Navbar */}
-            <nav className="sticky top-0 z-50 bg-[#0a0a16] border-b border-[#2a2a3e] px-4 py-3 shadow-lg">
-                <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
-                    <Link to="/" className="flex items-center gap-2 cursor-pointer w-48 shrink-0">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#8b2cf5] to-[#4361ee] flex items-center justify-center shadow-[0_0_15px_rgba(139,44,245,0.4)]">
-                            <Repeat className="text-white w-6 h-6" />
-                            <img src={logo} alt="TradeApp Logo" className="w-full h-full object-cover" />
-                        </div>
-                        <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]">Shoplify</span>
-                    </Link>
-
-                    <form onSubmit={handleSearch} className="flex-1 max-w-3xl relative">
-                        <input type="text" value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="ค้นหาโพสต์ในชุมชน..." className="w-full bg-[#151522] border border-[#2a2a3e] rounded-md py-2.5 pl-5 pr-12 focus:outline-none focus:border-[#8b2cf5] transition-all text-sm placeholder-gray-500" />
-                        <button type="submit" className="absolute right-2 top-1.5 p-1.5 bg-[#8b2cf5] rounded-md hover:bg-[#7220c7] transition"><Search className="w-4 h-4 text-white" /></button>
-                    </form>
-
-                    <div className="flex items-center gap-5 w-auto justify-end">
-                        <Link to="/shops" className="hidden md:flex items-center gap-2 text-gray-300 hover:text-[#8b2cf5] font-medium transition-colors mr-2"><Store className="w-5 h-5" /> ร้านค้า</Link>
-
-                        <div className="relative">
-                            <div className="relative cursor-pointer hover:text-[#8b2cf5] transition" onClick={handleToggleNotifications}>
-                                <Bell className="w-6 h-6 text-gray-300" />
-                                {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-bounce">{unreadCount > 9 ? '9+' : unreadCount}</span>}
-                            </div>
-                            {showNotifications && (
-                                <div className="absolute right-0 top-12 w-80 bg-[#12121e] border border-[#2a2a3e] rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
-                                    <div className="px-4 py-3 border-b border-[#2a2a3e] bg-[#0a0a16] flex justify-between items-center"><h3 className="font-bold text-white">การแจ้งเตือน</h3></div>
-                                    <div className="max-h-80 overflow-y-auto">
-                                        {notifications.length > 0 ? (
-                                            notifications.map(notif => (
-                                                <div key={notif._id} onClick={() => { 
-                                                    if (notif.type === 'NEW_LIKE' || notif.type === 'NEW_COMMENT') {
-                                                        navigate(`/community?postId=${notif.linkId}`);
-                                                    } else {
-                                                        navigate(`/profile/${notif.sender._id}`);
-                                                    }
-                                                    setShowNotifications(false); 
-                                                }} className={`p-3 border-b border-[#2a2a3e]/50 hover:bg-[#1a1a2e] transition cursor-pointer flex gap-3 ${!notif.isRead ? 'bg-[#1c1c2b]/60' : ''}`}>
-                                                    <Avatar name={notif.sender?.username} src={notif.sender?.imageProfile} size={10} />
-                                                    <div className="flex-1">
-                                                        <p className="text-sm text-gray-200 leading-tight"><span className="font-bold text-white">{notif.sender?.username}</span> {notif.message || 'ได้เริ่มติดตามคุณ'}</p>
-                                                        <p className="text-xs text-[#8b2cf5] mt-1">{timeAgo(notif.createdAt)}</p>
-                                                    </div>
-                                                    {!notif.isRead && <div className="w-2 h-2 rounded-full bg-[#8b2cf5] mt-2 shrink-0"></div>}
-                                                </div>
-                                            ))
-                                        ) : (<div className="p-8 flex flex-col items-center justify-center text-center"><Bell className="w-10 h-10 text-[#2a2a3e] mb-3" /><p className="text-sm text-gray-400">ไม่มีการแจ้งเตือนใหม่</p></div>)}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <Link to="/chat" className="relative cursor-pointer hover:text-[#8b2cf5] transition"><MessageSquare className="w-6 h-6 text-gray-300" /></Link>
-                        <div className="h-8 w-px bg-[#2a2a3e] mx-1" />
-
-                        <div className="relative">
-                            {currentUser ? (
-                                <div className="flex items-center gap-2 cursor-pointer group" onClick={() => { setShowDropdown(!showDropdown); setShowNotifications(false); }}>
-                                    <Avatar name={userData?.username} src={userData?.imageProfile} size={9} />
-                                    <span className="hidden sm:block text-sm font-medium text-gray-300 group-hover:text-white transition-colors truncate max-w-[100px]">{currentUser.username}</span>
-                                    {showDropdown && (
-                                        <div className="absolute right-0 top-12 w-48 bg-[#12121e] border border-[#2a2a3e] rounded-xl shadow-2xl overflow-hidden z-50">
-                                            <div className="px-4 py-3 border-b border-[#2a2a3e] bg-[#0a0a16]"><p className="text-sm font-bold text-white truncate">{currentUser.username}</p><p className="text-xs text-gray-500 truncate mt-0.5">{currentUser.email}</p></div>
-                                            <div className="p-2">
-                                                <Link to="/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#1c1c2b] hover:text-[#8b2cf5] rounded-lg transition-colors"><User className="w-4 h-4" /> โปรไฟล์ของฉัน</Link>
-                                                <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors mt-1"><LogOut className="w-4 h-4" /> ออกจากระบบ</button>
-                                            </div>
-
-
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (<Link to="/login" className="flex items-center gap-2 cursor-pointer hover:text-[#8b2cf5] transition group"><div className="w-9 h-9 rounded-full bg-[#151522] border-2 border-[#2a2a3e] flex items-center justify-center overflow-hidden group-hover:border-[#8b2cf5]"><User className="w-5 h-5 text-gray-400 group-hover:text-white" /></div></Link>)}
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <Navbar
+                currentUser={userData}
+                showDropdown={showDropdown}
+                setShowDropdown={setShowDropdown}
+            />
 
             <div className="bg-gradient-to-r from-[#1c0d33] via-[#0e0a20] to-[#05050f] border-b border-[#2a2a3e] py-5 px-4">
                 <div className="max-w-7xl mx-auto flex items-center gap-3"><div className="p-2.5 bg-[#8b2cf5]/20 rounded-xl border border-[#8b2cf5]/30"><Users className="w-6 h-6 text-[#8b2cf5]" /></div><div><h1 className="text-xl font-bold text-white">ชุมชนนักแลก</h1><p className="text-xs text-gray-400">พูดคุย แชร์ และหาของแลกกัน</p></div></div>
@@ -418,7 +384,7 @@ const Community = () => {
                     <div className="relative bg-[#12121e] rounded-xl border border-[#2a2a3e] min-h-[300px]">
                         {loading ? (<div className="flex justify-center items-center py-24"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#8b2cf5]" /></div>) : posts.length === 0 ? (<div className="flex flex-col items-center justify-center py-24 text-center"><MessageCircle className="w-14 h-14 mb-4 text-[#2a2a3e]" /><p className="text-gray-300 font-medium">ยังไม่มีโพสต์ในตอนนี้</p></div>) : (<div className="flex flex-col gap-4 p-4">{posts.map(post => {
                             const isFollowed = friends.some(f => f._id === post.author?._id);
-                            return <PostCard key={post._id} post={post} currentUser={currentUser} liked={post.likes?.includes(currentUser?.id || currentUser?._id)} isFollowing={isFollowed} onLike={() => handleLike(post._id)} onComment={handleComment} onDeleteComment={handleDeleteComment} onDeletePost={handleDeletePost} />
+                            return <PostCard key={post._id} post={post} currentUser={currentUser} liked={post.likes?.includes(currentUser?.id || currentUser?._id)} isFollowing={isFollowed} onLike={() => handleLike(post._id)} onComment={handleComment} onDeleteComment={handleDeleteComment} onDeletePost={handleDeletePost} onStartEdit={(p) => setEditingPost({ _id: p._id, content: p.content, postType: p.postType, existingImages: p.images || [], newImages: [] })} />
                         })}</div>)}
                     </div>
                 </div>
@@ -531,23 +497,126 @@ const Community = () => {
                     </div>
                 </div>
             )}
+
+            {/* 🟢 Edit Post Modal — อยู่ที่ Community level เพื่อไม่ให้ติด z-index */}
+            {editingPost && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setEditingPost(null)}>
+                    <div className="w-full max-w-lg bg-[#12121e] border border-[#2a2a3e] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a3e] bg-[#0a0a16] sticky top-0 z-10">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#8b2cf5] to-[#4361ee] flex items-center justify-center">
+                                    <Pencil className="w-4 h-4 text-white" />
+                                </div>
+                                <h2 className="font-bold text-white">แก้ไขโพสต์</h2>
+                            </div>
+                            <button onClick={() => setEditingPost(null)} className="p-1 hover:bg-[#2a2a3e] rounded-lg transition-colors">
+                                <X className="w-5 h-5 text-gray-400" />
+                            </button>
+                        </div>
+                        <div className="p-6 flex flex-col gap-4">
+                            <div>
+                                <label className="text-xs text-gray-400 mb-1.5 block">ประเภทโพสต์</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {Object.entries(POST_TYPE_LABELS).filter(([k]) => k !== 'ALL').map(([key, { label, icon }]) => (
+                                        <button type="button" key={key} onClick={() => setEditingPost(prev => ({ ...prev, postType: key }))} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${editingPost.postType === key ? 'bg-[#8b2cf5] border-[#8b2cf5] text-white' : 'bg-[#1c1c2b] border-[#2a2a3e] text-gray-400'}`}>{icon}{label}</button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <textarea rows={4} value={editingPost.content} onChange={e => setEditingPost(prev => ({ ...prev, content: e.target.value }))} placeholder="เขียนเนื้อหาโพสต์..." className="w-full bg-[#0a0a16] border border-[#2a2a3e] rounded-xl p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#8b2cf5] resize-none transition-colors" />
+                            </div>
+
+                            {/* รูปภาพเดิมที่มีอยู่ + รูปใหม่ที่เลือก */}
+                            {(editingPost.existingImages?.length > 0 || editingPost.newImages?.length > 0) && (
+                                <div>
+                                    <label className="text-xs text-gray-400 mb-1.5 block">รูปภาพ ({(editingPost.existingImages?.length || 0) + (editingPost.newImages?.length || 0)}/4)</label>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {/* รูปเดิม (Cloudinary URL) */}
+                                        {editingPost.existingImages?.map((url, i) => (
+                                            <div key={`existing-${i}`} className="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-[#2a2a3e]">
+                                                <img src={url} alt="existing" className="w-full h-full object-cover" />
+                                                <button type="button" onClick={() => setEditingPost(prev => ({ ...prev, existingImages: prev.existingImages.filter((_, idx) => idx !== i) }))} className="absolute top-1 right-1 p-1 bg-black/70 rounded-full hover:bg-red-500/80 transition-colors">
+                                                    <X className="w-3 h-3 text-white" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {/* รูปใหม่ (File object) */}
+                                        {editingPost.newImages?.map((file, i) => (
+                                            <div key={`new-${i}`} className="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-[#8b2cf5]/50">
+                                                <img src={URL.createObjectURL(file)} alt="new" className="w-full h-full object-cover" />
+                                                <button type="button" onClick={() => setEditingPost(prev => ({ ...prev, newImages: prev.newImages.filter((_, idx) => idx !== i) }))} className="absolute top-1 right-1 p-1 bg-black/70 rounded-full hover:bg-red-500/80 transition-colors">
+                                                    <X className="w-3 h-3 text-white" />
+                                                </button>
+                                                <span className="absolute bottom-1 left-1 text-[9px] bg-[#8b2cf5] text-white px-1.5 py-0.5 rounded">ใหม่</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ปุ่มเพิ่มรูป */}
+                            {((editingPost.existingImages?.length || 0) + (editingPost.newImages?.length || 0)) < 4 && (
+                                <label className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3e] hover:border-[#8b2cf5]/50 hover:bg-[#8b2cf5]/10 transition-all w-fit">
+                                    <Image className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm text-gray-300">เพิ่มรูปภาพ</span>
+                                    <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
+                                        const files = Array.from(e.target.files);
+                                        const totalImages = (editingPost.existingImages?.length || 0) + (editingPost.newImages?.length || 0);
+                                        const maxNew = 4 - totalImages;
+                                        if (files.length > maxNew) {
+                                            alert(`เพิ่มได้อีกแค่ ${maxNew} รูป`);
+                                            return;
+                                        }
+                                        setEditingPost(prev => ({ ...prev, newImages: [...(prev.newImages || []), ...files.slice(0, maxNew)] }));
+                                        e.target.value = ''; // reset input
+                                    }} />
+                                </label>
+                            )}
+
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button type="button" onClick={() => setEditingPost(null)} className="px-5 py-2 rounded-lg bg-[#1c1c2b] text-gray-400 text-sm hover:bg-[#2a2a3e] transition-colors">ยกเลิก</button>
+                                <button
+                                    disabled={editSubmitting || !editingPost.content.trim()}
+                                    onClick={async () => {
+                                        setEditSubmitting(true);
+                                        await handleEditPost(editingPost._id, {
+                                            content: editingPost.content,
+                                            postType: editingPost.postType,
+                                            existingImages: editingPost.existingImages || [],
+                                            newImages: editingPost.newImages || [],
+                                        });
+                                        setEditSubmitting(false);
+                                        setEditingPost(null);
+                                    }}
+                                    className="flex items-center gap-2 px-6 py-2 rounded-lg bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] text-white font-medium text-sm disabled:opacity-50 hover:shadow-[0_0_15px_rgba(139,44,245,0.4)] transition-all"
+                                >
+                                    {editSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+                                    บันทึก
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 // ═══════════════ POST CARD ═══════════════
-function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, onDeleteComment, onDeletePost }) {
+function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, onDeleteComment, onDeletePost, onStartEdit }) {
     const [expanded, setExpanded] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [showCommentMenu, setShowCommentMenu] = useState(null);
     const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
+    const [showPostMenu, setShowPostMenu] = useState(false);
     const navigate = useNavigate();
     useEffect(() => {
         // ฟังก์ชันสำหรับปิดเมนูทั้งหมด
         const closeAllDropdowns = () => {
             setShowMenu(false);
             setShowCommentMenu(null);
+            setShowPostMenu(false);
         };
 
         // ดักการคลิกที่ว่างทั่วทั้งหน้าเว็บ (แก้ปัญหาที่ 2)

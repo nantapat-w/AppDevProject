@@ -141,14 +141,16 @@ const Chat = () => {
             const receiver = activeChat.participants.find(p => String(p._id) !== myId) || activeChat.participants[0];
             
             // สร้าง Record ใน DB จริงๆ
+            // receiver._id คือคนส่งข้อเสนอ (ผู้ยื่น = requestId)
+            // myId คือคนที่กด ACCEPT (ผู้รับข้อเสนอ = receiveId)
             await axios.post('http://localhost:5000/api/trades', {
-                receiveId: myId, // คนที่กด ACCEPT คือคนรับข้อเสนอ
-                requestId: receiver._id,
+                receiveId: myId,          // คนกด Accept = คนรับข้อเสนอ
+                requestId: receiver._id,  // คนส่งข้อเสนอ = ผู้ยื่น
                 message: desc,
                 offerMoney: pay,
                 delivered: method,
                 meetupLocation: loc,
-                offerItems: location.state?.productId ? [location.state.productId] : [] // ใช้ productId ที่ส่งมาถ้ามี
+                offerItems: location.state?.productId ? [location.state.productId] : []
             }, { withCredentials: true });
         } catch (error) { console.error("Error creating trade record:", error); }
     }
@@ -317,8 +319,12 @@ const Chat = () => {
                     const originalProposal = msg.content.split('|').slice(1).join('|');
                     
                     // หาข้อมูล Trade จริงจาก DB ที่ตรงกับข้อเสนอนี้
-                    const dbTrade = trackedTrades.find(t => 
-                        (t.message === originalProposal.split('|')[4] || t.meetupLocation === originalProposal.split('|')[2]) &&
+                    // originalProposal format: 'METHOD|LOC|PAY|DESC' (index 0,1,2,3)
+                    const parts = originalProposal.split('|');
+                    const propDesc = parts[3];     // description/message
+                    const propLoc  = parts[1];     // location
+                    const dbTrade = trackedTrades.find(t =>
+                        (t.message === propDesc || t.meetupLocation === propLoc) &&
                         t.status !== 'REJECTED' && t.status !== 'CANCELLED'
                     );
 
@@ -374,12 +380,22 @@ const Chat = () => {
                                         {/* ปุ่มจัดการสำหรับแต่ละฝ่าย */}
                                         {/* ฝั่งคนส่งขอเทรดเป็นคนส่งของ (ถ้าเป็น offerer) */}
                                         {dbTrade.status === 'ACCEPTED' && String(dbTrade.requestId?._id || dbTrade.requestId) === myId && (
-                                            <button 
-                                                onClick={() => { setSelectedTradeForShipping(dbTrade); setShowShippingModal(true); }}
-                                                className="w-full py-2.5 bg-[#8b2cf5] text-white rounded-xl text-xs font-bold hover:scale-[1.02] transition shadow-lg"
-                                            >
-                                                📦 เตรียมจัดส่ง / กรอกเลขพัสดุ
-                                            </button>
+                                            <div className="flex flex-col gap-2">
+                                                <button 
+                                                    onClick={() => { setSelectedTradeForShipping(dbTrade); setShowShippingModal(true); }}
+                                                    className="w-full py-2.5 bg-[#8b2cf5] text-white rounded-xl text-xs font-bold hover:scale-[1.02] transition shadow-lg"
+                                                >
+                                                    📦 เตรียมจัดส่ง / กรอกเลขพัสดุ
+                                                </button>
+                                                {dbTrade.delivered === 'MEETUP' && (
+                                                    <button 
+                                                        onClick={() => completeTradeTransaction(dbTrade._id)}
+                                                        className="w-full py-2.5 bg-gradient-to-r from-green-500 to-emerald-400 text-white rounded-xl text-xs font-bold hover:scale-[1.02] transition shadow-lg"
+                                                    >
+                                                        ✅ ยืนยันนัดพบเสร็จสิ้น
+                                                    </button>
+                                                )}
+                                            </div>
                                         )}
 
                                         {/* ฝั่งคนรับของเป็นคนกดจบงาน (ถ้าเป็น receiver) */}

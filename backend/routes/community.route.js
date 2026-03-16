@@ -32,7 +32,7 @@ router.get("/", getAllPosts);
 router.get("/:id", getPostById);
 
 router.post("/", protectRoute, upload.array("images", 4), createPost); // ใช้ upload ตรงนี้
-router.put("/:id", protectRoute, updatePost);
+router.put("/:id", protectRoute, upload.array("images", 4), updatePost);
 router.delete("/:id", protectRoute, deletePost);
 
 router.put("/:id/like", protectRoute, likePost);

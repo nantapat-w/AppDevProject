@@ -21,7 +21,7 @@ export const createShop = async (req, res) => {
         // 🌟 ดึง URL ของรูปจาก Cloudinary
         let logoUrl = "";
         if (req.file) {
-            logoUrl = req.file.path; 
+            logoUrl = req.file.path;
         }
 
         // 🌟 สร้างรหัสร้านค้า 6 หลักที่ไม่ซ้ำ
@@ -41,7 +41,7 @@ export const createShop = async (req, res) => {
             shopCode, // บันทึกรหัสร้านค้า 6 หลัก
             shopDescription: shopDescription || "ยินดีต้อนรับสู่ร้านค้าของเรา",
             shopLogo: logoUrl, // บันทึก URL ลง MongoDB
-            shopBanner: shopBanner || "" 
+            shopBanner: shopBanner || ""
         });
 
         res.status(201).json({ success: true, message: "เปิดร้านค้าสำเร็จ!", data: newShop });
@@ -67,7 +67,7 @@ export const getShopById = async (req, res) => {
     try {
         const shop = await Shop.findById(req.params.id)
             .populate("ownerId", "username imageProfile trustScore email");
-            
+
         if (!shop) {
             return res.status(404).json({ success: false, message: "ไม่พบร้านค้านี้" });
         }
@@ -88,15 +88,15 @@ export const updateShop = async (req, res) => {
         }
 
         let updateData = { ...req.body };
-        
+
         // ถ้ามีการอัปโหลดรูปใหม่
         if (req.file) {
             updateData.shopLogo = req.file.path;
         }
 
-        shop = await Shop.findByIdAndUpdate(req.params.id, updateData, { 
-            new: true, 
-            runValidators: true 
+        shop = await Shop.findByIdAndUpdate(req.params.id, updateData, {
+            new: true,
+            runValidators: true
         });
 
         res.status(200).json({ success: true, message: "อัปเดตข้อมูลร้านค้าสำเร็จ", data: shop });
