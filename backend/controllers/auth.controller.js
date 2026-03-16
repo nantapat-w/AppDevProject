@@ -3,7 +3,7 @@ import Notification from "../models/Notification.model.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import redis from "../utils/redis.js";
-import sendEmail from "../utils/SendEmail.js"; // 📧 อย่าลืม import ตัวส่งเมลที่นายน้อยทำไว้นะครับ!
+import sendEmail from "../utils/sendEmail.js"; // 📧 อย่าลืม import ตัวส่งเมลที่นายน้อยทำไว้นะครับ!
 
 // 🔑 1. ฟังก์ชันสร้าง Token
 export const generateToken = (user) => {
