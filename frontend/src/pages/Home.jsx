@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, MessageSquare, Bell, User, Star, Repeat, Users, PackageOpen, LogOut, Store, ClipboardList, Settings } from 'lucide-react';
-
+import { Search, ShoppingBag, MessageSquare, Bell, User, Star, Repeat, Users, PackageOpen, LogOut, Store, ClipboardList, Settings, Trash2 } from 'lucide-react';
+import { axiosInstance } from '../utils/axios';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo0.png';
@@ -72,6 +72,19 @@ const Home = () => {
     fetchSiteSettings();
     fetchMyProfile();
   }, []);
+
+  const handleAdminDeleteProduct = async (e, productId) => {
+    e.stopPropagation();
+    if (!window.confirm('ลบสินค้านี้ออกจากระบบ? (แอดมิน)')) return;
+    try {
+      const res = await axiosInstance.delete(`/products/${productId}`);
+      if (res.data.success) {
+        setProducts(prev => prev.filter(p => p._id !== productId));
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'ลบไม่สำเร็จ');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#05050f] text-white font-sans pb-10">
@@ -163,6 +176,16 @@ const Home = () => {
                   <div className="absolute top-2 left-2 px-2 py-1 bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] rounded text-[10px] font-bold text-white z-10">
                     {item.tradeType === 'TRADE_ONLY' ? 'TRADE ONLY' : item.tradeType === 'SELL_ONLY' ? 'SELL ONLY' : 'SELL & TRADE'}
                   </div>
+                  {/* ปุ่มลบสำหรับ Admin */}
+                  {currentUser?.role === 'admin' && (
+                    <button
+                      onClick={(e) => handleAdminDeleteProduct(e, item._id)}
+                      className="absolute top-2 right-2 z-20 p-1.5 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm"
+                      title="ลบสินค้า (Admin)"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   {item.images && item.images.length > 0 ? (
                     <img
                       src={getImageUrl(item.images[0])}

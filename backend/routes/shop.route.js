@@ -12,6 +12,6 @@ router.get("/:id", getShopById);
 // 🔒 ต้องล็อกอิน + แนบรูป "shopLogo" ให้ตรงกับหน้าบ้าน
 router.post("/", protectRoute, uploadCloud.single("shopLogo"), createShop); //
 router.put("/:id", protectRoute, uploadCloud.single("shopLogo"), updateShop); //
-router.delete("/:id", protectRoute, deleteShop);
+router.delete("/:id", protectRoute, deleteShop); // 🗑️ ลบร้านค้า (owner/admin)
 
 export default router;

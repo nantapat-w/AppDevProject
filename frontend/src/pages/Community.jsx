@@ -633,6 +633,7 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
     const badgeClass = TYPE_BADGE_COLORS[post.postType] || TYPE_BADGE_COLORS.GENERAL;
     const label = POST_TYPE_LABELS[post.postType]?.label || post.postType;
     const isMe = String(currentUser?.id || currentUser?._id) === String(post.author?._id);
+    const isAdmin = currentUser?.role === 'admin';
     const isTradeRelated = ["TRADE_OFFER", "FINDING_ITEM"].includes(post.postType);
 
     const handleChatClick = (e, type, overrideUser) => {
@@ -685,23 +686,10 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
                         {post.tags?.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{post.tags.map((t, i) => (<span key={i} className="text-[10px] text-[#8b2cf5] bg-[#8b2cf5]/10 rounded px-1.5 py-0.5">#{t}</span>))}</div>}
                     </div>
                 </div>
-                {isMe && (
-                    <div className="relative">
-                        <button onClick={(e) => { e.stopPropagation(); setShowPostMenu(!showPostMenu); }} className="text-gray-400 hover:text-white hover:bg-[#2a2a3e] p-1.5 rounded-lg transition-all" title="ตัวเลือก">
-                            <MoreHorizontal className="w-5 h-5" />
-                        </button>
-                        {showPostMenu && (
-                            <div className="absolute right-0 top-10 w-44 bg-[#1a1a2e] border border-[#8b2cf5]/50 rounded-xl shadow-2xl z-[60] p-1.5 flex flex-col gap-0.5 animate-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
-                                <button onClick={() => { setShowPostMenu(false); onStartEdit(post); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2a2a3e] hover:text-[#8b2cf5] rounded-lg transition-colors">
-                                    <Pencil className="w-4 h-4" /> แก้ไขโพสต์
-                                </button>
-                                <div className="h-px bg-[#2a2a3e] my-0.5"></div>
-                                <button onClick={() => { setShowPostMenu(false); onDeletePost(post._id); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
-                                    <Trash2 className="w-4 h-4" /> ลบโพสต์
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                {(isMe || isAdmin) && (
+                    <button onClick={() => onDeletePost(post._id)} className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-all" title="ลบโพสต์">
+                        <Trash2 className="w-4 h-4" />
+                    </button>
                 )}
                 {showMenu && (
                     <div className="absolute top-14 left-14 w-48 bg-[#1a1a2e] border border-[#8b2cf5]/50 rounded-xl shadow-2xl z-30 p-1.5 flex flex-col gap-0.5 animate-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
@@ -769,7 +757,7 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
                             {post.comments.map(comment => {
                                 const isCommentOwner = String(currentUser?.id || currentUser?._id) === String(comment.user?._id);
                                 const isPostOwner = isMe;
-                                const canDelete = isCommentOwner || isPostOwner;
+                                const canDelete = isCommentOwner || isPostOwner || isAdmin;
                                 const isCommentMenuOpen = showCommentMenu === comment._id;
                                 const isCommentAuthorFollowing = isFollowing; // Assuming isFollowing passed to PostCard applies to the post author, not comment author. Need to adjust if comment author's follow status is needed.
 

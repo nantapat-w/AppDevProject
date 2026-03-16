@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Store, Star, MapPin, Plus, Package, X, Upload, Image as ImageIcon, Trash2, ShieldCheck, Calendar, Hash, MessageCircle, UserCheck, Clock, Pencil, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
 
 const ShopDetail = () => {
   const { id } = useParams();
@@ -197,6 +198,11 @@ const ShopDetail = () => {
   if (!shop) return <div className="min-h-screen flex justify-center items-center bg-[#05050f] text-white">ไม่พบข้อมูลร้านค้านี้</div>;
 
   const isOwner = shop && currentUser && (String(shop.ownerId?._id || shop.ownerId) === String(currentUser._id || currentUser.id));
+  const isAdmin = currentUser?.role === 'admin';
+  const canManage = isOwner || isAdmin;
+
+
+
 
   return (
     <div className="min-h-screen bg-[#05050f] text-white font-sans pb-10 relative">
@@ -248,6 +254,14 @@ const ShopDetail = () => {
                 <Trash2 className="w-4 h-4" /> ลบร้านค้า
               </button>
             </div>
+          )}
+          {isAdmin && (
+            <button
+              onClick={handleDeleteShop}
+              className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500 border border-red-500/40 hover:border-red-500 text-red-400 hover:text-white px-6 py-3 rounded-xl font-bold text-sm transition"
+            >
+              <AlertTriangle className="w-4 h-4" /> ลบร้านค้านี้ (Admin)
+            </button>
           )}
         </div>
       </div>
@@ -400,7 +414,7 @@ const ShopDetail = () => {
                   className="bg-[#12121e] border border-[#2a2a3e] rounded-xl overflow-hidden hover:border-[#8b2cf5] transition group cursor-pointer shadow-lg hover:shadow-[0_0_15px_rgba(139,44,245,0.2)] relative"
                   onClick={() => navigate(`/product/${product._id}`)}
                 >
-                  {isOwner && (
+                  {canManage && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

@@ -1,4 +1,9 @@
 import User from "../models/User.model.js";
+import Shop from "../models/Shop.model.js";
+import Product from "../models/Product.model.js";
+import Community from "../models/Community.model.js";
+import Order from "../models/Order.model.js";
+import Trade from "../models/Trade.model.js";
 
 // @desc    Get all users
 // @route   GET /api/admin/users
@@ -67,6 +72,35 @@ export const updateUserByAdmin = async (req, res) => {
 
         await user.save();
         res.status(200).json({ success: true, message: "อัปเดตข้อมูลผู้ใช้งานสำเร็จ", data: user });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Clear all content data (shops, products, posts, orders, trades)
+// @route   DELETE /api/admin/clear-data
+// @access  Private/Admin
+export const clearAllData = async (req, res) => {
+    try {
+        const [shops, products, community, orders, trades] = await Promise.all([
+            Shop.deleteMany({}),
+            Product.deleteMany({}),
+            Community.deleteMany({}),
+            Order.deleteMany({}),
+            Trade.deleteMany({}),
+        ]);
+
+        res.status(200).json({
+            success: true,
+            message: "ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว",
+            deleted: {
+                shops: shops.deletedCount,
+                products: products.deletedCount,
+                communityPosts: community.deletedCount,
+                orders: orders.deletedCount,
+                trades: trades.deletedCount,
+            }
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

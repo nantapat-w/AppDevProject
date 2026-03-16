@@ -1,4 +1,5 @@
 import Shop from "../models/Shop.model.js";
+import Product from "../models/Product.model.js";
 
 // 📝 1. เปิดร้านค้าใหม่
 export const createShop = async (req, res) => {
@@ -117,18 +118,22 @@ export const getMyShop = async (req, res) => {
     }
 };
 
-// 🗑️ 6. ลบร้านค้า (เฉพาะเจ้าของร้าน)
+// 🗑️ 6. ลบร้านค้า (เจ้าของหรือแอดมินเท่านั้น)
 export const deleteShop = async (req, res) => {
     try {
         const shop = await Shop.findById(req.params.id);
         if (!shop) return res.status(404).json({ success: false, message: "ไม่พบร้านค้านี้" });
 
-        if (shop.ownerId.toString() !== req.user._id.toString()) {
+        // ตรวจสิทธิ์: เจ้าของหรือ admin เท่านั้น
+        if (shop.ownerId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
             return res.status(403).json({ success: false, message: "คุณไม่มีสิทธิ์ลบร้านค้านี้" });
         }
 
-        await Shop.findByIdAndDelete(req.params.id);
-        res.status(200).json({ success: true, message: "ลบร้านค้าเรียบร้อยแล้ว" });
+        // ลบสินค้าทั้งหมดในร้านด้วย
+        await Product.deleteMany({ shopId: req.params.id });
+
+        await shop.deleteOne();
+        res.status(200).json({ success: true, message: "ลบร้านค้าและสินค้าทั้งหมดเรียบร้อยแล้ว" });
     } catch (error) {
         res.status(500).json({ success: false, message: `Server Error: ${error.message}` });
     }
