@@ -135,7 +135,7 @@ const Cart = () => {
                                     </div>
                                     <div className="flex justify-between text-sm text-gray-400">
                                         <span>ค่าจัดส่ง</span>
-                                        <span className="text-green-400 font-medium">ฟรี</span>
+                                        <span className="text-green-400 font-medium font-mono">฿0</span>
                                     </div>
                                 </div>
 

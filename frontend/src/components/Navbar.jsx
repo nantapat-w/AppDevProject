@@ -1,7 +1,7 @@
 //ส่วนนี้ทำหน้าที่เป็น แถบเมนูด้านบนของเว็บ (Navigation Bar) ของแพลตฟอร์ม Shoplify
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, MessageSquare, User, LogOut, ClipboardList, Settings, Store, Shield } from 'lucide-react';
+import { Search, Bell, MessageSquare, User, LogOut, ClipboardList, Settings, Store, Shield, ShoppingCart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logo from '../assets/logo0.png';
@@ -48,6 +48,17 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+
+  const fetchCartCount = () => {
+    try {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const count = cart.reduce((total, item) => total + (item.quantity || 1), 0);
+      setCartCount(count);
+    } catch (error) {
+      console.error('Error fetching cart count:', error);
+    }
+  };
 
   const fetchNotifications = async () => {
     if (!currentUser) return;
@@ -64,6 +75,19 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
 
   useEffect(() => {
     fetchNotifications();
+    fetchCartCount();
+
+    // Listen for storage events (cross-tab sync)
+    const handleStorageChange = () => fetchCartCount();
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Custom interval to catch changes in the same tab (since we don't have a global state)
+    const interval = setInterval(fetchCartCount, 2000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   // ปิด panel เมื่อคลิกนอก
@@ -78,6 +102,7 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
         setShowDropdown(false);
       }
     };
+    if (showDropdown) fetchCartCount(); // Update count when dropdown is opened
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [setShowDropdown]); // 👈 ใส่ dependencies ด้วย
@@ -241,6 +266,16 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
                       )}
                       <Link to="/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#1c1c2b] hover:text-[#8b2cf5] rounded-lg transition-colors">
                         <User className="w-4 h-4" /> โปรไฟล์ของฉัน
+                      </Link>
+                      <Link to="/cart" className="flex items-center justify-between px-3 py-2 text-sm text-gray-300 hover:bg-[#1c1c2b] hover:text-[#8b2cf5] rounded-lg transition-colors mt-1">
+                        <div className="flex items-center gap-2">
+                          <ShoppingCart className="w-4 h-4" /> ตะกร้าสินค้า
+                        </div>
+                        {cartCount > 0 && (
+                          <span className="bg-[#8b2cf5] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                            {cartCount}
+                          </span>
+                        )}
                       </Link>
                       <Link to="/orders" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#1c1c2b] hover:text-[#8b2cf5] rounded-lg transition-colors mt-1">
                         <ClipboardList className="w-4 h-4" /> ประวัติการสั่งซื้อ

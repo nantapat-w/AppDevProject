@@ -145,10 +145,12 @@ const PaymentPage = () => {
             setIsLoadingAddress(true);
             const res = await axios.get('http://localhost:5000/api/account-settings/addresses', { withCredentials: true });
             if (res.data.success) {
-                setAddresses(res.data.addresses);
-                const defaultAddr = res.data.addresses.find(addr => addr.isDefault);
+                const filteredAddresses = res.data.addresses.filter(addr => addr.label !== 'SYSTEM_RESERVED');
+                setAddresses(filteredAddresses);
+                const defaultAddr = filteredAddresses.find(addr => addr.isDefault);
                 if (defaultAddr) setDefaultAddress(defaultAddr);
-                else if (res.data.addresses.length > 0) setDefaultAddress(res.data.addresses[0]);
+                else if (filteredAddresses.length > 0) setDefaultAddress(filteredAddresses[0]);
+                else setDefaultAddress(null);
             }
         } catch (error) {
             console.error('Error fetching addresses:', error);
@@ -188,6 +190,9 @@ const PaymentPage = () => {
                 return false;
             }
 
+            const discount = totalAmount - finalAmount;
+            const firstItem = items[0];
+            
             const orderData = {
                 items: items.map(item => ({
                     productId: item._id,
@@ -208,7 +213,10 @@ const PaymentPage = () => {
                 },
                 totalAmount: finalAmount,
                 originalAmount: totalAmount,
-                couponCode: appliedCoupon?.code,
+                discountAmount: discount,
+                discountCode: appliedCoupon?.code || "",
+                shopName: firstItem?.ownerId?.username || firstItem?.shopId?.shopName || "Shopify Store",
+                shopId: firstItem?.shopId?._id || firstItem?.shopId,
                 paymentMethod: method === 'credit' ? 'CREDIT_CARD' : 
                                method === 'promptpay' ? 'PROMPTPAY' : 
                                `MOBILE_BANKING${selectedBank ? ` (${selectedBank.name})` : ''}`

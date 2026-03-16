@@ -3,7 +3,7 @@ import {
     Search, Bell, User, Star, Repeat, Users, MessageSquare,
     LogOut, Store, Heart, MessageCircle, Plus, X, ChevronLeft,
     ChevronRight, Image, Send, Flame, BookOpen, ThumbsUp, AlertTriangle,
-    PackageSearch, Sparkles, PackageOpen, Check, Camera, Video, Trash2, Share2,
+    PackageSearch, Sparkles, PackageOpen, Check, Camera, Video, Trash2,
     MoreHorizontal, Pencil
 } from 'lucide-react';
 import axios from 'axios';

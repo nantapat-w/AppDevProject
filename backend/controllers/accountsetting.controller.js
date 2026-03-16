@@ -1,6 +1,6 @@
 import AccountSetting from "../models/AccountSetting.model.js";
 
-// @desc Get all addresses for a user
+// @desc Get all addresses for the logged-in user
 // @route GET /api/account-settings/addresses
 // @access Private
 export const getAddresses = async (req, res) => {
@@ -8,10 +8,37 @@ export const getAddresses = async (req, res) => {
         let accountSetting = await AccountSetting.findOne({ userId: req.user._id });
         
         if (!accountSetting) {
-            // Create initial account setting if it doesn't exist
-            accountSetting = await AccountSetting.create({ userId: req.user._id, addresses: [] });
+            accountSetting = new AccountSetting({ 
+                userId: req.user._id, 
+                addresses: [{
+                    label: 'SYSTEM_RESERVED',
+                    fullName: 'SYSTEM',
+                    phoneNumber: '0000000000',
+                    addressLine: 'SYSTEM',
+                    subDistrict: 'SYSTEM',
+                    district: 'SYSTEM',
+                    province: 'SYSTEM',
+                    zipCode: '00000',
+                    isDefault: false
+                }] 
+            });
+            await accountSetting.save();
+        } else if (accountSetting.addresses.length === 0 || accountSetting.addresses[0].label !== 'SYSTEM_RESERVED') {
+            // Ensure index 0 is always our sentinel
+            accountSetting.addresses.unshift({
+                label: 'SYSTEM_RESERVED',
+                fullName: 'SYSTEM',
+                phoneNumber: '0000000000',
+                addressLine: 'SYSTEM',
+                subDistrict: 'SYSTEM',
+                district: 'SYSTEM',
+                province: 'SYSTEM',
+                zipCode: '00000',
+                isDefault: false
+            });
+            await accountSetting.save();
         }
-        
+
         res.status(200).json({
             success: true,
             addresses: accountSetting.addresses
@@ -26,20 +53,55 @@ export const getAddresses = async (req, res) => {
 // @access Private
 export const addAddress = async (req, res) => {
     try {
-        const { label, fullName, phoneNumber, addressLine, subDistrict, district, province, zipCode, isDefault } = req.body;
+        let { label, fullName, phoneNumber, addressLine, subDistrict, district, province, zipCode, isDefault } = req.body;
         
         let accountSetting = await AccountSetting.findOne({ userId: req.user._id });
         
         if (!accountSetting) {
-            accountSetting = new AccountSetting({ userId: req.user._id, addresses: [] });
+            accountSetting = new AccountSetting({ 
+                userId: req.user._id, 
+                addresses: [{
+                    label: 'SYSTEM_RESERVED',
+                    fullName: 'SYSTEM',
+                    phoneNumber: '0000000000',
+                    addressLine: 'SYSTEM',
+                    subDistrict: 'SYSTEM',
+                    district: 'SYSTEM',
+                    province: 'SYSTEM',
+                    zipCode: '00000',
+                    isDefault: false
+                }] 
+            });
+            await accountSetting.save();
+        } else if (accountSetting.addresses.length === 0 || accountSetting.addresses[0].label !== 'SYSTEM_RESERVED') {
+            // Ensure index 0 is always our sentinel
+            accountSetting.addresses.unshift({
+                label: 'SYSTEM_RESERVED',
+                fullName: 'SYSTEM',
+                phoneNumber: '0000000000',
+                addressLine: 'SYSTEM',
+                subDistrict: 'SYSTEM',
+                district: 'SYSTEM',
+                province: 'SYSTEM',
+                zipCode: '00000',
+                isDefault: false
+            });
+            await accountSetting.save();
         }
 
-        // If this is the first address, it should be default
-        const actualIsDefault = accountSetting.addresses.length === 0 ? true : isDefault;
+        // If it's the first REAL address, set as default
+        // The first dummy address is index 0, so real addresses start at index 1
+        if (accountSetting.addresses.filter(a => a.label !== 'SYSTEM_RESERVED').length === 0) {
+            isDefault = true;
+        }
 
-        // If new address is set as default, unset others
-        if (actualIsDefault) {
-            accountSetting.addresses.forEach(addr => addr.isDefault = false);
+        // If new address is set as default, unset others (excluding SYSTEM_RESERVED)
+        if (isDefault) {
+            accountSetting.addresses.forEach(addr => {
+                if (addr.label !== 'SYSTEM_RESERVED') {
+                    addr.isDefault = false;
+                }
+            });
         }
 
         accountSetting.addresses.push({
@@ -51,7 +113,7 @@ export const addAddress = async (req, res) => {
             district,
             province,
             zipCode,
-            isDefault: actualIsDefault
+            isDefault
         });
 
         await accountSetting.save();
@@ -80,21 +142,30 @@ export const updateAddress = async (req, res) => {
             return res.status(404).json({ success: false, message: "ไม่พบข้อมูลบัญชี" });
         }
 
-        const addressIndex = accountSetting.addresses.findIndex(addr => addr._id.toString() === addressId);
+        const address = accountSetting.addresses.id(addressId);
         
-        if (addressIndex === -1) {
+        if (!address) {
             return res.status(404).json({ success: false, message: "ไม่พบที่อยู่" });
         }
 
-        // If setting as default, unset others
+        if (address.label === 'SYSTEM_RESERVED') {
+            return res.status(403).json({ success: false, message: "ไม่สามารถแก้ไขข้อมูลระบบได้" });
+        }
+
+        // If setting as default, unset others (excluding system reserved which is never default)
         if (updates.isDefault) {
-            accountSetting.addresses.forEach(addr => addr.isDefault = false);
+            accountSetting.addresses.forEach(addr => {
+                if (addr._id.toString() !== addressId) {
+                    addr.isDefault = false;
+                }
+            });
+            address.isDefault = true;
         }
 
         // Update fields
-        const address = accountSetting.addresses[addressIndex];
+        const allowedUpdates = ['label', 'fullName', 'phoneNumber', 'addressLine', 'subDistrict', 'district', 'province', 'zipCode', 'isDefault'];
         Object.keys(updates).forEach(key => {
-            if (key !== '_id') {
+            if (allowedUpdates.includes(key)) {
                 address[key] = updates[key];
             }
         });
@@ -129,12 +200,21 @@ export const deleteAddress = async (req, res) => {
             return res.status(404).json({ success: false, message: "ไม่พบที่อยู่" });
         }
 
-        const wasDefault = addressToDelete.isDefault;
-        addressToDelete.deleteOne();
+        if (addressToDelete.label === 'SYSTEM_RESERVED') {
+            return res.status(403).json({ success: false, message: "ไม่สามารถลบข้อมูลระบบได้" });
+        }
 
-        // If we deleted the default address, set the first one as default if any exist
-        if (wasDefault && accountSetting.addresses.length > 0) {
-            accountSetting.addresses[0].isDefault = true;
+        const wasDefault = addressToDelete.isDefault;
+        
+        // Use explicit filter to ensure deletion
+        accountSetting.addresses = accountSetting.addresses.filter(addr => addr._id.toString() !== addressId);
+
+        // If we deleted the default address, set the first remaining REAL one as default if any exist
+        if (wasDefault) {
+            const firstRealAddress = accountSetting.addresses.find(addr => addr.label !== 'SYSTEM_RESERVED');
+            if (firstRealAddress) {
+                firstRealAddress.isDefault = true;
+            }
         }
 
         await accountSetting.save();

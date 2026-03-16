@@ -45,6 +45,26 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ["PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED"],
         default: "PAID"
+    },
+    discountCode: {
+        type: String,
+        default: ""
+    },
+    discountAmount: {
+        type: Number,
+        default: 0
+    },
+    originalAmount: {
+        type: Number,
+        default: 0
+    },
+    shopName: {
+        type: String,
+        default: "Shopify Store"
+    },
+    shopId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Shop"
     }
 }, { timestamps: true });
 
