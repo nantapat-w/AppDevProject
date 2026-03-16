@@ -240,47 +240,6 @@ const AdminDashboard = () => {
 
 
 
-        {/* Tabs */}
-        <div className="flex items-center gap-8 border-b border-[#2a2a3e] mb-8">
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`pb-4 text-sm font-bold transition-all relative flex items-center gap-2 ${activeTab === 'users' ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-gray-300'}`}
-          >
-            <Users className="w-4 h-4" /> Users
-            {activeTab === 'users' && <div className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]"></div>}
-          </button>
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`pb-4 text-sm font-bold transition-all relative flex items-center gap-2 ${activeTab === 'settings' ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-gray-300'}`}
-          >
-            <Settings className="w-4 h-4" /> Site Settings
-            {activeTab === 'settings' && <div className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]"></div>}
-          </button>
-          <button
-            onClick={() => setActiveTab('coupons')}
-            className={`pb-4 text-sm font-bold transition-all relative flex items-center gap-2 ${activeTab === 'coupons' ? 'text-[#8b2cf5]' : 'text-gray-500 hover:text-gray-300'}`}
-          >
-            <Ticket className="w-4 h-4" /> Coupons
-            {activeTab === 'coupons' && <div className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-gradient-to-r from-[#8b2cf5] to-[#4361ee]"></div>}
-          </button>
-        </div>
-
-        {activeTab === 'users' && (
-          <div className="bg-[#0a0a16] border border-[#2a2a3e] rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-6 border-b border-[#2a2a3e] flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="relative flex-1 max-w-md">
-                <input
-                  type="text"
-                  placeholder="Search users by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-[#151522] border border-[#2a2a3e] rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:border-[#8b2cf5] transition-all text-sm text-gray-200"
-                />
-                <Search className="w-4 h-4 text-gray-500 absolute left-3 top-2.5" />
-              </div>
-            </div>
-
-
                 {/* Tabs */}
                 <div className="flex items-center gap-8 border-b border-[#2a2a3e] mb-8">
                     <button
