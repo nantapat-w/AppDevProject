@@ -79,11 +79,11 @@ export const login = async (req, res) => {
         const { accessToken, refreshToken } = generateToken(user);
         await redis.set(`session:${user._id}`, refreshToken, "EX", 604800);
 
-        // ✅ ตั้งค่า Cookie ให้ฝั่ง Frontend (localhost) มองเห็น
+        // ✅ ตั้งค่า Cookie ให้รองรับแบบข้ามโดเมนและ HTTPS (Render)
         const cookieOptions = {
             httpOnly: true,
-            secure: false, // ต้องเป็น false สำหรับ http://localhost
-            sameSite: "lax", // ต้องเป็น lax เพื่อให้ส่งข้ามพอร์ต 5173 -> 5000
+            secure: true, // ต้องเป็น true หาก deploy ผ่าน HTTPS
+            sameSite: "none", // ต้องเป็น none เพื่อให้ส่งข้ามโดเมนได้ (Frontend -> Backend)
         };
 
         res.cookie("accessToken", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
@@ -131,7 +131,7 @@ export const logout = async (req, res) => {
         }
 
         // ✅ สั่งลบ Cookie ใน Browser ทันที (ต้องใส่ options ให้เหมือนตอนสร้าง)
-        const clearOptions = { httpOnly: true, secure: false, sameSite: "lax" };
+        const clearOptions = { httpOnly: true, secure: true, sameSite: "none" };
         res.clearCookie("accessToken", clearOptions);
         res.clearCookie("refreshToken", clearOptions);
 
@@ -165,8 +165,8 @@ export const refreshToken = async (req, res) => {
         // ✅ Set accessToken cookie ใหม่ให้ browser
         const cookieOptions = {
             httpOnly: true,
-            secure: false,
-            sameSite: "lax",
+            secure: true,
+            sameSite: "none",
             maxAge: 15 * 60 * 1000, // 15 นาที
         };
         res.cookie("accessToken", tokens.accessToken, cookieOptions);
@@ -390,7 +390,7 @@ export const deleteAccount = async (req, res) => {
         }
 
         // ล้าง Cookie
-        const clearOptions = { httpOnly: true, secure: false, sameSite: "lax" };
+        const clearOptions = { httpOnly: true, secure: true, sameSite: "none" };
         res.clearCookie("accessToken", clearOptions);
         res.clearCookie("refreshToken", clearOptions);
 
