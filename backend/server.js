@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import "dotenv/config";
 import path from "path"; // 🟢 สำหรับอ่านไฟล์รูปภาพ
+import fs from "fs"; // 🌟 เพิ่ม fs สำหรับอ่านและเขียนไฟล์ .txt
 
 // ✅ นำเข้า Database
 import { connectDB } from "./utils/db.js"; 
@@ -52,6 +53,43 @@ app.use("/api/account-settings", accountSettingRoute);
 app.use("/api/orders", orderRoute);
 app.use("/api/admin", adminRoute);
 app.get("/api/settings", getSiteSettings);
+
+// =================================================================
+// 🌟 🌟 เพิ่ม API สำหรับจัดการไฟล์ BannerContent.txt (สำหรับหน้า Admin) 🌟 🌟
+// =================================================================
+
+// 📍 กำหนด Path ไปที่โฟลเดอร์ assets ของ Frontend
+// หมายเหตุ: ตรง "../frontend" ให้เช็คว่าโฟลเดอร์ React ของคุณชื่อนี้ไหม ถ้าชื่อ "client" ก็เปลี่ยนเป็น "../client/src/assets/..."
+const bannerFilePath = path.join(process.cwd(), "../frontend/src/assets/BannerContent.txt");
+
+// 1. API สำหรับเซฟเนื้อหาลงไฟล์ .txt
+app.post('/api/admin/save-banner-file', async (req, res) => {
+    try {
+        const { content } = req.body;
+        // เขียนไฟล์ทับของเดิมด้วยเนื้อหาใหม่
+        fs.writeFileSync(bannerFilePath, content || '', 'utf8');
+        res.json({ success: true, message: 'บันทึกลงไฟล์ .txt สำเร็จ' });
+    } catch (error) {
+        console.error("Error writing file:", error);
+        res.status(500).json({ success: false, message: 'เซฟไฟล์ไม่สำเร็จ: ' + error.message });
+    }
+});
+
+// 2. API สำหรับอ่านเนื้อหาจากไฟล์ .txt ไปโชว์หน้าเว็บ
+app.get('/api/get-banner-file', (req, res) => {
+    try {
+        if (fs.existsSync(bannerFilePath)) {
+            const content = fs.readFileSync(bannerFilePath, 'utf8');
+            res.json({ success: true, data: content });
+        } else {
+            res.json({ success: true, data: 'ยังไม่มีรายละเอียดโปรโมชั่น (ไม่พบไฟล์)' });
+        }
+    } catch (error) {
+        console.error("Error reading file:", error);
+        res.status(500).json({ success: false, message: 'อ่านไฟล์ไม่สำเร็จ' });
+    }
+});
+// =================================================================
 
 
 // 🚀 สตาร์ทเซิร์ฟเวอร์ และต่อ Database

@@ -94,7 +94,10 @@ const Home = () => {
               </span>
             </h1>
             <p className="text-gray-400 mb-6 z-10">{siteSettings?.banner?.description || `ใช้โค้ด "TRADE50" เมื่อทำการยืนยันการแลกเปลี่ยน`}</p>
-            <button className="w-fit bg-[#8b2cf5] text-white font-medium py-2.5 px-8 rounded-md hover:bg-[#7220c7] transition z-10">
+            <button
+              onClick={() => navigate('/banner')}
+              className="w-fit bg-[#8b2cf5] text-white font-medium py-2.5 px-8 rounded-md hover:bg-[#7220c7] transition z-10"
+            >
               {siteSettings?.banner?.buttonText || "ดูรายละเอียด"}
             </button>
           </div>
