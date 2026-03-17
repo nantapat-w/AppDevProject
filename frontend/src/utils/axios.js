@@ -4,7 +4,7 @@ import axios from 'axios';
 const isDev = import.meta.env.MODE === 'development';
 const API_BASE_URL = isDev
     ? 'http://localhost:5000/api'
-    : 'https://appdevproject-la7w.onrender.com/api'; // 🌟 บังคับใส่ URL Backend จริงลงไปเลยครับ
+    : (import.meta.env.VITE_API_URL || 'https://appdevproject-la7w.onrender.com/api');
 
 export const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
