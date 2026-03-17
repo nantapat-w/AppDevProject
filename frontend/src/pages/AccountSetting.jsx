@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import logo from '../assets/logo0.png';
-import axios from 'axios';
+
 import Navbar from '../components/Navbar';
 
 const AccountSetting = () => {
@@ -344,7 +344,7 @@ const AccountSetting = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:5000/api/auth/logout', {}, { withCredentials: true });
+      await axiosInstance.post('/auth/logout', {});
       localStorage.removeItem('user');
       navigate('/login');
     } catch (error) {

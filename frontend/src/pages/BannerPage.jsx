@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { axiosInstance as axios } from '../utils/axios';
 import { ArrowLeft, Ticket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -21,13 +21,13 @@ const BannerPage = () => {
     const fetchData = async () => {
       try {
         // 1. ดึงข้อมูลหัวข้อและโค้ดโปรโมชั่นจาก Database
-        const settingsRes = await axios.get('http://localhost:5000/api/settings');
+        const settingsRes = await axios.get('/settings');
         if (settingsRes.data.success) {
           setSiteSettings(settingsRes.data.data);
         }
 
         // 2. 🌟 ดึงเนื้อหารายละเอียดจากไฟล์ BannerContent.txt ผ่าน Backend
-        const fileRes = await axios.get('http://localhost:5000/api/get-banner-file');
+        const fileRes = await axios.get('/get-banner-file');
         if (fileRes.data.success) {
             setBannerFileText(fileRes.data.data);
         }

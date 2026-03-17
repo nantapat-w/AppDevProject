@@ -6,13 +6,13 @@ import {
     PackageSearch, Sparkles, PackageOpen, Check, Camera, Video, Trash2,
     MoreHorizontal, Pencil
 } from 'lucide-react';
-import axios from 'axios';
+import { axiosInstance as axios } from '../utils/axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/logo0.png';
 import Navbar from '../components/Navbar';
 
 // ---------- utils ----------
-const API = 'http://localhost:5000/api';
+const API = '';
 
 const POST_TYPE_LABELS = {
     ALL: { label: 'ทั้งหมด', icon: <Sparkles className="w-3.5 h-3.5" /> },
@@ -659,12 +659,11 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
         setCommentText('');
     };
 
-    // Combine video and images for gallery
     const mediaItems = [];
-    if (post.video) mediaItems.push({ type: 'video', url: post.video.startsWith('http') ? post.video : `http://localhost:5000${post.video}` });
+    if (post.video) mediaItems.push({ type: 'video', url: post.video.startsWith('http') ? post.video : `https://appdevproject-la7w.onrender.com${post.video}` });
     if (post.images?.length > 0) {
         post.images.forEach(img => {
-            mediaItems.push({ type: 'image', url: img.startsWith('http') ? img : `http://localhost:5000${img}` });
+            mediaItems.push({ type: 'image', url: img.startsWith('http') ? img : `https://appdevproject-la7w.onrender.com${img}` });
         });
     }
 
