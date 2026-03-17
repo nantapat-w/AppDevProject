@@ -68,13 +68,22 @@ export const getProductById = async (req,res) => {
             {$inc:{views:1}},
             {new:true}
         ).populate("ownerId" , "username email imageProfile")
-         .populate("shopId", "shopName shopLogo");
+         .populate("shopId", "shopName shopLogo rating");
 
         if (!product) {
             return res.status(404).json({ success: false, message: "ไม่พบข้อมูลสินค้านี้" });
         }
 
-        res.status(200).json({ success: true, data: product });
+        // นับสินค้า AVAILABLE จริงในร้านค้า
+        let shopProductCount = null;
+        if (product.shopId) {
+            shopProductCount = await Product.countDocuments({ 
+                shopId: product.shopId._id, 
+                status: "AVAILABLE" 
+            });
+        }
+
+        res.status(200).json({ success: true, data: product, shopProductCount });
     }catch(error){
         if (error.name === 'CastError') return res.status(400).json({ success: false, message: "รูปแบบ ID ไม่ถูกต้อง" });
         res.status(500).json({ success: false, message: "เกิดข้อผิดพลาด", error: error.message });
