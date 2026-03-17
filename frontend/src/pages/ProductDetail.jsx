@@ -8,6 +8,7 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [shopProductCount, setShopProductCount] = useState(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -15,6 +16,9 @@ const ProductDetail = () => {
         const res = await axios.get(`http://localhost:5000/api/products/${id}`);
         if (res.data.success) {
           setProduct(res.data.data);
+          if (res.data.shopProductCount !== null) {
+            setShopProductCount(res.data.shopProductCount);
+          }
         }
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -110,7 +114,7 @@ const ProductDetail = () => {
             </h2>
             <div className="mt-4 flex items-baseline gap-3">
                <span className="text-4xl font-black text-[#8b2cf5]">฿{product.price.toLocaleString()}</span>
-               {product.tradeType === 'BOTH' && <span className="text-sm text-gray-500 italic">หรือ เสนอถอน/แลก</span>}
+               {product.tradeType === 'BOTH' && <span className="text-sm text-gray-500 italic">ขาย/เทรด</span>}
             </div>
           </div>
 
@@ -124,10 +128,36 @@ const ProductDetail = () => {
           </div>
 
           {/* Shop Card */}
-          <div className="bg-[#0a0a16] border border-[#2a2a3e] rounded-2xl overflow-hidden hover:border-[#4361ee] transition group shadow-xl">
+          {product.shopId ? (
+           <Link to={`/shops/${product.shopId._id || product.shopId}`} className="block">
+           <div className="bg-[#0a0a16] border border-[#2a2a3e] rounded-2xl overflow-hidden hover:border-[#4361ee] transition group shadow-xl">
              <div className="p-5 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                    <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-[#8b2cf5] to-[#4361ee] p-0.5">
+                      <div className="w-full h-full bg-[#12121e] rounded-xl overflow-hidden flex items-center justify-center">
+                         {product.shopId?.shopLogo ? (
+                           <img src={product.shopId.shopLogo} className="w-full h-full object-cover" />
+                         ) : (
+                           <Store className="w-7 h-7 text-gray-500" />
+                         )}
+                      </div>
+                   </div>
+                   <div>
+                      <h4 className="font-bold text-white group-hover:text-[#4361ee] transition">{product.shopId?.shopName || 'ร้านค้า'}</h4>
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" /> 
+                        {product.shopId?.rating || '5.0'} • สินค้าทั้งหมด {shopProductCount !== null ? shopProductCount : '-'}
+                      </p>
+                   </div>
+                </div>
+                <ChevronRight className="w-6 h-6 text-gray-400 group-hover:text-white transition" />
+             </div>
+          </div>
+          </Link>
+          ) : (
+           <div className="bg-[#0a0a16] border border-[#2a2a3e] rounded-2xl overflow-hidden shadow-xl">
+             <div className="p-5 flex items-center gap-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-[#8b2cf5] to-[#4361ee] p-0.5">
                       <div className="w-full h-full bg-[#12121e] rounded-xl overflow-hidden flex items-center justify-center">
                          {product.ownerId?.imageProfile ? (
                            <img src={product.ownerId.imageProfile} className="w-full h-full object-cover" />
@@ -135,22 +165,14 @@ const ProductDetail = () => {
                            <Store className="w-7 h-7 text-gray-500" />
                          )}
                       </div>
-                   </div>
-                   <div>
-                      <h4 className="font-bold text-white group-hover:text-[#4361ee] transition">{product.ownerId?.username || 'Unknown Shop'}</h4>
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" /> 
-                        {product.ownerId?.trustScore || '5.0'} • สินค้าทั้งหมด {product.ownerId?.productCount || '10'}
-                      </p>
-                   </div>
                 </div>
-                {product.shopId && (
-                  <Link to={`/shops/${product.shopId}`} className="text-gray-400 hover:text-white transition">
-                    <ChevronRight className="w-6 h-6" />
-                  </Link>
-                )}
+                <div>
+                   <h4 className="font-bold text-white">{product.ownerId?.username || 'ผู้ขาย'}</h4>
+                   <p className="text-xs text-gray-500">ผู้ขายส่วนตัว</p>
+                </div>
              </div>
           </div>
+          )}
 
           {/* Action Buttons */}
           <div className="grid grid-cols-1 gap-4">
