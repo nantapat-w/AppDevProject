@@ -15,8 +15,10 @@ const ResetPassword = () => {
     const [errorMsg, setErrorMsg] = useState('');
     const [success, setSuccess] = useState(false);
 
+    // 🔑 ส่งคำขอเปลี่ยนรหัสผ่านใหม่ (Reset Password Recovery Flow)
     const handleSubmit = async (e) => {
         e.preventDefault();
+        // 1. ตรวจสอบเบื้องต้น (Client-side Validation)
         if (passwordData.newPassword !== passwordData.confirmPassword) {
             setErrorMsg('รหัสผ่านไม่ตรงกัน');
             return;
@@ -30,14 +32,18 @@ const ResetPassword = () => {
         setErrorMsg('');
 
         try {
+            // 🔗 PUT /api/auth/reset-password/:token
+            // ใช้ Token ที่ได้รับจาก URL (ส่งผ่านอีเมลมา) เพื่อยืนยันสิทธิ์ในการเปลี่ยนรหัสผ่าน
             const response = await axiosInstance.put(`/auth/reset-password/${token}`, {
                 newPassword: passwordData.newPassword
             });
             if (response.data.success) {
                 setSuccess(true);
+                // 🕒 แสดงสถานะสำเร็จ 3 วินาทีเพื่อให้ User อุ่นใจ ก่อนพาวาร์ปไปหน้า Login
                 setTimeout(() => navigate('/login'), 3000);
             }
         } catch (error) {
+            // ❌ กรณี Token หมดอายุ (ปกติจะหมดอายุใน 1 ชม.) หรือเคยถูกใช้งานไปแล้ว
             setErrorMsg(error.response?.data?.message || 'Token ไม่ถูกต้องหรือหมดอายุ');
         } finally {
             setLoading(false);

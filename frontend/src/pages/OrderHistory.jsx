@@ -23,11 +23,15 @@ const OrderHistory = () => {
         fetchOrders();
     }, []);
 
+    // 📋 ดึงประวัติคำสั่งซื้อทั้งหมดของ User ปัจจุบัน
     const fetchOrders = async () => {
         try {
             setOrdersLoading(true);
+            // 🔗 GET /api/orders/my-orders
+            // Backend จะใช้ User ID จาก JWT Token ใน Cookie เพื่อดึงข้อมูลเฉพาะของ User คนนั้นๆ
             const res = await axiosInstance.get('/orders/my-orders', { withCredentials: true });
             if (res.data.success) {
+                // เก็บรายการคำสั่งซื้อลง State เพื่อวนลูปแสดงผลใน UI
                 setOrders(res.data.orders);
             }
         } catch (error) {

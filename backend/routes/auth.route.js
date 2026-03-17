@@ -11,25 +11,23 @@ import { protectRoute } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-// 🔓 ไม่ต้องล็อกอิน
-router.post("/register", register);
-router.post("/login", login);
-router.post("/refresh-token", refreshToken); 
-router.post("/forgot-password", forgotPassword);
-router.put("/reset-password/:token", resetPassword); // ✅ เปิดใช้งานแล้ว!
-router.get("/profile/:id", getUserProfile); 
-
-// 🔒 ต้องล็อกอิน
-router.get("/me", protectRoute, getMe);
+// 🔓 Public Routes (ไม่ต้องเข้าสู่ระบบ)
+router.post("/register", register); // สมัครสมาชิก
+router.post("/login", login); // เข้าสู่ระบบ
+router.post("/refresh-token", refreshToken); // ต่ออายุ Token
+router.post("/forgot-password", forgotPassword); // ลืมรหัสผ่าน (ส่งเมล์)
+router.put("/reset-password/:token", resetPassword); // รีเซ็ทรหัสผ่านใหม่
+router.get("/profile/:id", getUserProfile); // ดูโปรไฟล์คนอื่น (ID)
+// 🔒 Protected Routes (ต้องเข้าสู่ระบบ - ผ่าน middleware protectRoute)
+router.get("/me", protectRoute, getMe); // ดึงข้อมูลตัวเอง
+// อัปเดตโปรไฟล์ (รองรับการอัปโหลดรูปภาพ 1 รูป เข้า Cloudinary)
 router.put("/profile", protectRoute, uploadCloud.single("imageProfile"), updateProfile);
-router.put("/password", protectRoute, updatePassword);
-router.post("/address", protectRoute, addAddress);
-router.delete("/address/:addressId", protectRoute, deleteAddress);
+router.put("/password", protectRoute, updatePassword); // เปลี่ยนรหัสผ่าน
+router.post("/address", protectRoute, addAddress); // เพิ่มที่อยู่จัดส่ง
+router.delete("/address/:addressId", protectRoute, deleteAddress); // ลบที่อยู่
 router.delete("/account", protectRoute, deleteAccount); // 🗑️ ลบบัญชีผู้ใช้งาน
-// เพิ่มบรรทัดนี้ลงไป (ต้องอยู่หลัง middleware protect หรือ verifyToken นะครับ)
-// เปลี่ยนจาก protect เป็น protectRoute ให้ตรงตามที่นายน้อย import ไว้ข้างบนครับ
-router.get("/friends", protectRoute, getFriends);
-router.put("/verify-email", protectRoute, verifyEmail); 
+router.get("/friends", protectRoute, getFriends); // ดึงรายชื่อเพื่อน (Mutual Follow)
+router.put("/verify-email", protectRoute, verifyEmail); // ยืนยันอีเมล
 
 // 👥 ระบบ Social
 router.put("/follow/:id", protectRoute, toggleFollow); 

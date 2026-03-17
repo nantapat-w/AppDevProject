@@ -1,11 +1,13 @@
 import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema({
+    // 👤 เจ้าของสินค้า
     ownerId:{
         type:mongoose.Schema.Types.ObjectId,
         required:[true , "สินค้าต้องมีเจ้าของ"],
         ref:"User"
     },
+    // 🏪 ร้านค้าที่วางขาย
     shopId:{
         type:mongoose.Schema.Types.ObjectId,
         required:[true , "สินค้าต้องระบุร้านค้า"],
@@ -23,18 +25,18 @@ const productSchema = new mongoose.Schema({
         required:[true , "กรุณากรอกรายละเอียของสินค้า"],    
     },
     images:{
-        type:[String],
+        type:[String], // อาเรย์ของ URL รูปภาพ (Cloudinary)
         validate:[arrayLimit , "ใส่รูปภาพได้สูงสุด 5 รูปภาพ"]
     },
-    // หมวดมหู่
+    // 📦 หมวดหมู่และสภาพ
     category:{
         type:String,
-        enum:["weapon", "armor", "potion", "electronics", "clothing", "other"],
+        enum:["weapon", "armor", "potion", "electronics", "clothing", "other"], // หมวดหมู่สินค้า
         required:[true , "กรุณาเลือกหมวดหมู่"]
     },
     condition: {
-        type: String, // สภาพของ
-        enum: ["NEW", "USED_LIKE_NEW", "USED_GOOD", "USED_FAIR"],
+        type: String, // สภาพของสินค้า
+        enum: ["NEW", "USED_LIKE_NEW", "USED_GOOD", "USED_FAIR"], // ใหม่, มือสองสภาพนางฟ้า, ดี, ปานกลาง
         default: "USED_GOOD"
     },
     tags:{
@@ -42,10 +44,10 @@ const productSchema = new mongoose.Schema({
         validate:[tagLimit , "ใส่ tag ได้สูงสุด 10 tag"]
     },
 
-    // ระบบการซื้อขาย trade
+    // 🤝 ระบบการซื้อขาย/แลกเปลี่ยน (Trade)
     tradeType:{
         type:String,
-        enum:["SELL_ONLY" , "TRADE_ONLY" , "BOTH"],
+        enum:["SELL_ONLY" , "TRADE_ONLY" , "BOTH"], // ขายอย่างเดียว, แลกอย่างเดียว, ได้ทั้งคู่
         default:"BOTH"
     },
     price:{
@@ -54,19 +56,19 @@ const productSchema = new mongoose.Schema({
         default:0
     },
     wishlist:{
-        type:String,
+        type:String, // สิ่งที่อยากได้แลกด้วย (กรณี TRADE)
         maxlength:[200 , "ความยาวต้องไม่เกิน 200 ตัวอักษร"],
         default:"รับพิจารณาทุกข้อเสนอ"
     },
 
-    // เก็บสถานะสินค้า
+    // 🔔 สถานะสินค้า
     status:{
         type:String,
-        enum:["AVAILABLE" , "HIDDEN" , "TRADING" , "SOLD" , "TRADED"],
+        enum:["AVAILABLE" , "HIDDEN" , "TRADING" , "SOLD" , "TRADED"], // พร้อมขาย, ซ่อน, กำลังเจรจา, ขายแล้ว, แลกแล้ว
         default:"AVAILABLE"
     },
     views:{
-        type:Number,
+        type:Number, // จำนวนการเข้าชม
         default:0
     }
 

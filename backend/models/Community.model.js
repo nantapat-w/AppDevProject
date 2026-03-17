@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 
 const commentSchema = new mongoose.Schema({
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    text: { type: String, required: true },
-    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // 👤 ผู้คอมเมนต์
+    text: { type: String, required: true }, // 💬 เนื้อหาคอมเมนต์
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }] // ❤️ คนที่มากดถูกใจคอมเมนต์นี้
 }, { timestamps: true });
 
 const communitySchema = new mongoose.Schema({

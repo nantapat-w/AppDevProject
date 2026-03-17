@@ -11,24 +11,29 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // 📝 จัดการการเปลี่ยนแปลงในฟอร์ม
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // 🚀 ฟังก์ชันส่งข้อมูลสมัครสมาชิกใหม่ (User Registration)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg('');
 
     try {
-      // 🚀 ยิง API สมัครสมาชิก
+      // 🔗 ยิง API Register (Path: /api/auth/register)
+      // ส่ง Payload ไปคือ username, email, password
+      // Backend จะทำการ hashing password และลงทะเบียน User ใหม่ลง Database
       const response = await axios.post('http://localhost:5000/api/auth/register', formData);
 
       if (response.data.success) {
-        alert('🎉 สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
-        navigate('/login');
+        alert('🎉 ยินดีด้วยเพื่อน! สมัครสมาชิกสำเร็จแล้ว กรุณาเข้าสู่ระบบ');
+        navigate('/login'); // สมัครเสร็จแล้วก็นำทางไปยังหน้า Login เพื่อให้เขา Token ต่อ
       }
     } catch (error) {
+      // ❌ กรณีล้มเหลว: เช่น อีเมลซ้ำ, ชื่อผู้ใช้ซ้ำ (ตรวจสอบโดย Unique Index ใน MongoDB)
       setErrorMsg(error.response?.data?.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก');
     } finally {
       setLoading(false);

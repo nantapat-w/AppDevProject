@@ -10,25 +10,34 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // 📝 จัดการการเปลี่ยนแปลงในฟอร์ม
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // 🚀 ฟังก์ชันส่งข้อมูลเข้าสู่ระบบ (Credential Authentication)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg('');
 
     try {
+      // 🔗 ยิง API Login (Path: /api/auth/login)
+      // ส่ง identifier (เป็นได้ทั้ง Email หรือ Username) + password
+      // Backend (auth.controller.js -> login) จะตรวจสอบรหัสผ่าน (bcrypt.compare)
+      // และสร้าง JWT Token ฝังลงใน HttpOnly Cookie
       const response = await axios.post('http://localhost:5000/api/auth/login', formData, {
-        withCredentials: true
+        withCredentials: true // ⚠️ สำคัญ: ต้องเป็น true เพื่อให้ Browser ยอมรับและเก็บ JWT Cookie
       });
 
       if (response.data.success) {
+        // 💾 บันทึกข้อมูลโปรไฟล์พื้นฐาน (ID, Username, Role) ลง LocalStorage 
+        // เพื่อใช้แสดงผล UI เบื้องต้นในหน้าอื่นๆ ทันที
         localStorage.setItem('user', JSON.stringify(response.data.user));
-        navigate('/');
+        navigate('/'); // เข้าสู่ระบบสำเร็จ -> พาผู้ใช้วิ่งไปที่หน้า Home
       }
     } catch (error) {
+      // ❌ กรณี Error: เช่น รหัสไม่ตรง, ไม่มีชื่อผู้ใช้, หรือเซิร์ฟเวอร์ร่วง
       setErrorMsg(error.response?.data?.message || 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
     } finally {
       setLoading(false);

@@ -27,16 +27,19 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage: storage });
 
-// --- Routes ---
-router.get("/", getAllPosts);
-router.get("/:id", getPostById);
+// --- Routes (จัดการข้อมูลชุมชน) ---
+router.get("/", getAllPosts); // ดึงโพสต์ทั้งหมด (Public Feed)
+router.get("/:id", getPostById); // ดูรายละเอียดโพสต์เจาะจง (Public)
 
-router.post("/", protectRoute, upload.array("images", 4), createPost); // ใช้ upload ตรงนี้
+// 🔒 Protected Routes (ต้องเข้าสู่ระบบ)
+// สร้างโพสต์ (รองรับรูปภาพหลายรูป - สูงสุด 4 รูป)
+router.post("/", protectRoute, upload.array("images", 4), createPost); 
+// แก้ไขโพสต์ (รองรับการเปลี่ยนรูปภาพ)
 router.put("/:id", protectRoute, upload.array("images", 4), updatePost);
-router.delete("/:id", protectRoute, deletePost);
+router.delete("/:id", protectRoute, deletePost); // ลบโพสต์
 
-router.put("/:id/like", protectRoute, likePost);
-router.post("/:id/comment", protectRoute, commentOnPost);
-router.delete("/:postId/comment/:commentId", protectRoute, deleteComment);
+router.put("/:id/like", protectRoute, likePost); // ถูกใจ/เลิกถูกใจ
+router.post("/:id/comment", protectRoute, commentOnPost); // คอมเมนต์โพสต์
+router.delete("/:postId/comment/:commentId", protectRoute, deleteComment); // ลบคอมเมนต์
 
 export default router;

@@ -24,9 +24,12 @@ const OrderDetail = () => {
         fetchOrderDetail();
     }, [orderId]);
 
+    // 📦 ดึงรายละเอียดคำสั่งซื้อจาก ID ใน URL
+    // 📡 ดึงรายละเอียดคำสั่งซื้อ
     const fetchOrderDetail = async () => {
         try {
             setLoading(true);
+            // 🔗 GET /api/orders/:orderId
             const res = await axiosInstance.get(`/orders/${orderId}`);
             if (res.data.success) {
                 setOrder(res.data.order);
@@ -34,18 +37,21 @@ const OrderDetail = () => {
         } catch (error) {
             console.error('Error fetching order details:', error);
             alert('ไม่สามารถดึงข้อมูลคำสั่งซื้อได้');
-            navigate('/orders');
+            navigate('/orders'); // ย้อนกลับไปหน้ารวมออร์เดอร์ถ้าล้มเหลว
         } finally {
             setLoading(false);
         }
     };
 
+    // ❌ ขอยกเลิกคำสั่งซื้อ (เฉพาะสถานะที่อนุญาต)
+    // 🚮 ยกเลิกคำสั่งซื้อ (เฉพาะกรณีที่ยังไม่ได้ส่งของ)
     const handleCancelOrder = async () => {
         try {
             setCancelling(true);
+            // 🔗 PATCH /api/orders/:orderId/cancel
             const res = await axiosInstance.patch(`/orders/${orderId}/cancel`);
             if (res.data.success) {
-                setOrder(res.data.order);
+                setOrder(res.data.order); // อัปเดต State ออร์เดอร์ให้เป็น CANCELLED
                 setShowCancelModal(false);
                 alert('ยกเลิกคำสั่งซื้อสำเร็จ');
             }

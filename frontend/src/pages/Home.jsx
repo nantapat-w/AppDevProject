@@ -13,7 +13,8 @@ const Home = () => {
   const [siteSettings, setSiteSettings] = useState(null);
   const [userData, setUserData] = useState(JSON.parse(localStorage.getItem('user')));
 
-  // 🛠️ Helper: รองรับทั้ง relative path (/uploads/xxx) และ absolute URL (http://...)
+  // 🛠️ Helper: จัดการ URL ของรูปภาพ
+  // รองรับทั้งแบบ Path ในเครื่อง (/uploads/...) และ URL ตรงจาก Cloudinary (http://...)
   const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
@@ -23,7 +24,8 @@ const Home = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('user'));
 
-  const fetchMyProfile = async () => { //หน้าโปรไฟล์
+  // 👤 ดึงข้อมูลโปรไฟล์ของฉัน (เพื่อให้ข้อมูลใน Navbar อัปเดตเสมอ)
+  const fetchMyProfile = async () => {
     const currentUser = JSON.parse(localStorage.getItem('user'));
     if (!currentUser) return;
     try {
@@ -31,23 +33,26 @@ const Home = () => {
       const res = await axios.get(`http://localhost:5000/api/auth/profile/${targetId}`, { withCredentials: true });
       if (res.data.success) {
         setUserData(res.data.data);
-        localStorage.setItem('user', JSON.stringify(res.data.data));
+        localStorage.setItem('user', JSON.stringify(res.data.data)); // บันทึกลงเครื่องใหม่
       }
     } catch (err) {
       console.error("Fetch profile error", err);
     }
   };
 
+  // 🔄 ส่วน useEffect สำหรับการเตรียมข้อมูลหน้าแรก (Initialization)
   useEffect(() => {
+    // 📦 1. ดึงรายการสินค้ามาแสดงหน้า Home
     const fetchProducts = async () => {
       try {
+        // 🔗 GET /api/products : ดึงรายการสินค้าทั้งหมด (รวม ownerId เพื่อโชว์ชื่อคนขาย)
         const response = await axios.get('http://localhost:5000/api/products');
         if (response.data.success) {
-          //เรียงลำดับจากวันที่สร้างล่าสุด (ใหม่สุดอยู่บนสุด)
+          // เรียงลำดับจากวันที่สร้างใหม่ที่สุด (New Arrival)
           const sortedProducts = response.data.data.sort((a, b) => {
             return new Date(b.createdAt) - new Date(a.createdAt);
           });
-          //ตัดเอามาแค่ 1 ชิ้นแรก (1 แถว แถวละ 4 ชิ้น)
+          // แสดงผลแค่ 4 ชิ้นแรกในหน้า Home (Grid 1 แถว) เพื่อความทันสมัยไม่รกตา
           setProducts(sortedProducts.slice(0, 4));
         }
       } catch (error) {
@@ -57,8 +62,10 @@ const Home = () => {
       }
     };
 
+    // ⚙️ 2. ดึงค่าการตั้งค่าเว็บไซต์ (เช่น Banner Title/Subtitle จาก Admin)
     const fetchSiteSettings = async () => {
       try {
+        // 🔗 GET /api/settings : ดึงข้อมูลตั้งค่าระบบที่แอดมินแก้ผ่าน Dashboard
         const response = await axios.get('http://localhost:5000/api/settings');
         if (response.data.success) {
           setSiteSettings(response.data.data);
@@ -68,6 +75,7 @@ const Home = () => {
       }
     };
 
+    // รันฟังก์ชันเตรียมการทั้งหมด
     fetchProducts();
     fetchSiteSettings();
     fetchMyProfile();

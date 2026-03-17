@@ -8,16 +8,20 @@ import { uploadProductCloud } from "../utils/cloudinary.js"; // 🟢 ใช้ C
 
 const router = express.Router();
 
-// 🔓 ไม่ต้องล็อกอิน
-router.get("/", getAllProducts);
-router.get("/shop/:shopId", getProductsByShop); 
+// 🔓 Public Routes (ไม่ต้องล็อกอิน)
+router.get("/", getAllProducts); // ดึงสินค้าทั้งหมด (รองรับ Query: category, search)
+router.get("/shop/:shopId", getProductsByShop); // ดึงสินค้าประจำร้านค้า
+router.get("/:id", getProductById); // ดึงข้อมูลสินค้าเจาะจงหลัก (ID)
+
+// 🆔 เส้นทางสำหรับดึงสินค้าของตัวเอง (Protected)
 router.get("/user/my-products", protectRoute, getMyProducts); 
 
-router.get("/:id", getProductById); 
-
-// 🔒 ต้องล็อกอิน
+// 🔒 Protected Routes (ต้องล็อกอิน - ผ่าน middleware protectRoute)
+// สร้างสินค้าใหม่ (รองรับการอัปโหลดรูปภาพ 1 รูป เข้า Cloudinary Folder: AppDevProducts)
 router.post("/", protectRoute, uploadProductCloud.single("image"), createProduct);
+// แก้ไขข้อมูลสินค้า
 router.put("/:id", protectRoute, uploadProductCloud.single("image"), updateProduct);
+// ลบสินค้า
 router.delete("/:id", protectRoute, deleteProduct);
 
 export default router;

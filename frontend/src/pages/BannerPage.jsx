@@ -17,16 +17,18 @@ const BannerPage = () => {
   // 🌟 เพิ่ม State สำหรับคุมการเปิด/ปิด Dropdown ของ Navbar
   const [showDropdown, setShowDropdown] = useState(false);
 
+  // 📡 ดึงข้อมูลจากเซิร์ฟเวอร์
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. ดึงข้อมูลหัวข้อและโค้ดโปรโมชั่นจาก Database
+        // 1. ⚙️ ดึงข้อมูลหัวข้อ (Title, Subtitle) และโค้ดโปรโมชั่นจาก Database
         const settingsRes = await axios.get('http://localhost:5000/api/settings');
         if (settingsRes.data.success) {
           setSiteSettings(settingsRes.data.data);
         }
 
-        // 2. 🌟 ดึงเนื้อหารายละเอียดจากไฟล์ BannerContent.txt ผ่าน Backend
+        // 2. 📝 🌟 ดึงเนื้อหารายละเอียดจากไฟล์ BannerContent.txt ผ่าน Backend
+        // (ฟีเจอร์พิเศษ: อ่านเนื้อหาจากไฟล์ข้อความตรงๆ เพื่อความง่ายในการแก้ไขแบบ Real-time)
         const fileRes = await axios.get('http://localhost:5000/api/get-banner-file');
         if (fileRes.data.success) {
             setBannerFileText(fileRes.data.data);

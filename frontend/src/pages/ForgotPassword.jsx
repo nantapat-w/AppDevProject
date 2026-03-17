@@ -21,6 +21,7 @@ const ForgotPassword = () => {
         }
     };
 
+    // 📧 ส่งคำขอรับลิงก์รีเซ็ตรหัสผ่านไปยังอีเมล
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -28,11 +29,14 @@ const ForgotPassword = () => {
         setSuccessMsg('');
 
         try {
+            // 🔗 POST /api/auth/forgot-password
             const response = await axiosInstance.post('/auth/forgot-password', { email: identifier });
             if (response.data.success) {
+                // 📧 แสดงข้อความสำเร็จเพื่อให้ผู้ใช้ไปเช็คเมล
                 setSuccessMsg('✅ ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลของคุณแล้ว');
             }
         } catch (error) {
+            // ❌ กรณีไม่พบอีเมลในระบบ
             setErrorMsg(error.response?.data?.message || 'ไม่พบอีเมลในระบบ');
         } finally {
             setLoading(false);

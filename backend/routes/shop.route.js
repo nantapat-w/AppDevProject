@@ -5,13 +5,17 @@ import { uploadCloud } from "../utils/cloudinary.js"; //
 
 const router = express.Router();
 
-router.get("/", getAllShops);
-router.get("/my-shop", protectRoute, getMyShop);
-router.get("/:id", getShopById);
+// 🌐 เส้นทางสำหรับจัดการร้านค้า
+router.get("/", getAllShops); // ดึงร้านค้าทั้งหมด (Public)
+router.get("/my-shop", protectRoute, getMyShop); // ดึงข้อมูลร้านตัวเอง (ต้องล็อกอิน)
+router.get("/:id", getShopById); // ดูข้อมูลร้านค้าเจาะจง (Public)
 
-// 🔒 ต้องล็อกอิน + แนบรูป "shopLogo" ให้ตรงกับหน้าบ้าน
-router.post("/", protectRoute, uploadCloud.single("shopLogo"), createShop); //
-router.put("/:id", protectRoute, uploadCloud.single("shopLogo"), updateShop); //
-router.delete("/:id", protectRoute, deleteShop); // 🗑️ ลบร้านค้า (owner/admin)
+// 🔒 เส้นทางที่ต้องล็อกอิน (Protected)
+// สร้างร้านค้าใหม่ (รองรับรูป Logo 1 รูป)
+router.post("/", protectRoute, uploadCloud.single("shopLogo"), createShop); 
+// แก้ไขข้อมูลร้านค้า
+router.put("/:id", protectRoute, uploadCloud.single("shopLogo"), updateShop); 
+// ลบร้านค้า
+router.delete("/:id", protectRoute, deleteShop); 
 
 export default router;

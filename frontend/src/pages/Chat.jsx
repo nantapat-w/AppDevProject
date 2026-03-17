@@ -32,7 +32,10 @@ const Chat = () => {
   } catch (error) { console.error(error); }
   const myId = String(currentUser?.id || currentUser?._id || "");
 
+  // 💬 ส่วน Chat Initialization: รองรับการทักแชทมาจากหน้าสินค้าหรือโปรไฟล์
   useEffect(() => {
+    // หากมีการส่ง state มาจาก navigate (เช่น {receiverId, chatType}) 
+    // ให้ทำห้องแชทชั่วคราว (Temp Chat) รอส่งข้อความแรกเพื่อสร้างห้องจริงใน DB
     if (location.state?.receiverId) {
       const incomingType = location.state.chatType || 'GENERAL';
       setActiveTab(incomingType);
@@ -41,11 +44,13 @@ const Chat = () => {
         chatType: incomingType,
         participants: [{ _id: location.state.receiverId, username: location.state.receiverName || 'คู่สนทนา' }]
       });
+      // ล้าง state เพื่อไม่ให้มันเด้งกลับมาคุยคนเดิมถ้ารีโหลด
       window.history.replaceState({}, document.title);
     }
   }, [location]);
 
   // 🟢 1. ทำให้ "รายชื่อแชทฝั่งซ้าย" อัปเดตอัตโนมัติทุก 3 วินาทีด้วย (เพื่อนจะได้เห็นห้องแชทเด้งขึ้นมาเลย)
+  // 🟢 1. ดึงรายชื่อแชทฝั่งซ้าย (อัปเดตอัตโนมัติทุก 3 วินาที)
   useEffect(() => {
     if (!myId) return;
     const fetchChats = async () => {
@@ -55,7 +60,7 @@ const Chat = () => {
       } catch (error) { console.error(error); }
     };
     fetchChats();
-    const interval = setInterval(fetchChats, 3000); 
+    const interval = setInterval(fetchChats, 3000); // Polling ทุก 3 วินาที
     return () => clearInterval(interval);
   }, [myId]);
 
@@ -94,6 +99,7 @@ const Chat = () => {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
+  // 📩 ส่งข้อความ (รองรับทั้งแชททั่วไปและแชทเทรด)
   const handleSendMessage = async (contentStr, isTrade = false) => {
     const textToSend = contentStr || newMessage;
     if (!textToSend.trim() || !activeChat || !myId) return;
@@ -108,8 +114,10 @@ const Chat = () => {
       }, { withCredentials: true });
 
       if (res.data.success) {
-        setMessages(prev => [...prev, { sender: myId, content: textToSend }]);
+        setMessages(prev => [...prev, { sender: myId, content: textToSend }]); // อัปเดต UI ทันที
         setNewMessage('');
+        
+        // ถ้าเป็นการสร้างแชทใหม่ (Temp Chat) ให้รีเฟรชรายชื่อแชทเพื่อให้มี _id จริงๆ
         if (activeChat._id === 'new_temp_chat') {
             const refreshRes = await axios.get('http://localhost:5000/api/chats', { withCredentials: true }); 
             if (refreshRes.data.success) {

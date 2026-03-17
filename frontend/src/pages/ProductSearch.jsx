@@ -44,20 +44,19 @@ const ProductSearch = () => {
     fetchMyProfile();
   }, []);
 
+  // 📦 ดึงรายการสินค้าทั้งหมดจาก Backend
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
+        // 🔗 GET /api/products
+        // เพื่อประสิทธิภาพ สูงสุด ฟีเจอร์นี้จะดึงสินค้าทั้งหมดมาเก็บไว้ใน State ก่อน
+        // แล้วค่อยใช้ JavaScript กรอง (Filter) และทำ Pagination ในระดับ Frontend
         const response = await axios.get('http://localhost:5000/api/products');
         if (response.data.success) {
-          
           let fetchedProducts = response.data.data;
-
-          if (response.data.success) {
-          let fetchedProducts = response.data.data;
-          // ใช้ข้อมูลจริงจาก Database ทันที
+          // เก็บข้อมูลทั้งหมดไว้ใน AllProducts เพื่อเป็น Master List ในการค้นหา
           setAllProducts(fetchedProducts); 
-        }
         }
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -68,18 +67,21 @@ const ProductSearch = () => {
     fetchProducts();
   }, []);
 
-  // ระบบกรองข้อมูล (Filter)
+  // 🔍 ระบบกรองข้อมูล (Client-side Search Filter)
   useEffect(() => {
     if (!q) {
+      // ถ้าไม่มีคีย์เวิร์ดค้นหา ให้แสดงสินค้าทั้งหมด
       setFilteredProducts(allProducts);
     } else {
       const lowerCaseQuery = q.toLowerCase();
+      // กรองสินค้าที่ชื่อสินค้า (productName) มีคำค้นหาปนอยู่
       const matched = allProducts.filter(item => 
         item.productName.toLowerCase().includes(lowerCaseQuery)
       );
       setFilteredProducts(matched);
     }
-    setCurrentPage(1); // 🟢 สำคัญ: เวลากดค้นหาคำใหม่ ต้องรีเซ็ตกลับไปหน้า 1 เสมอ
+    // 🟢 สำคัญ: เมื่อมีการค้นหาใหม่ (คีย์เวิร์ดเปลี่ยน) ต้องรีเซ็ตกลับไปที่หน้าแรก (Page 1) เสมอ
+    setCurrentPage(1); 
   }, [q, allProducts]);
 
   // 🟢 2. คำนวณข้อมูลสำหรับการแบ่งหน้า

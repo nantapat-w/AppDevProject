@@ -40,6 +40,7 @@ const AdminDashboard = () => {
 
 
 
+  // 🛡️ ตรวจสอบสิทธิ์ผู้ดูแลระบบ (Admin)
   useEffect(() => {
     if (!currentUser) {
       console.log("No user found in localStorage, redirecting to login");
@@ -53,6 +54,7 @@ const AdminDashboard = () => {
       return;
     }
 
+    // 👥 ดึงรายชื่อผู้ใช้ทั้งหมด
     const fetchUsers = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/admin/users', { withCredentials: true });
@@ -64,6 +66,7 @@ const AdminDashboard = () => {
       }
     };
 
+    // 🎫 ดึงข้อมูลคูปอง
     const fetchCoupons = async () => {
       try {
         const res = await axios.get('http://localhost:5000/api/admin/coupons', { withCredentials: true });
@@ -71,11 +74,11 @@ const AdminDashboard = () => {
       } catch (err) { console.error(err); }
     };
 
+    // ⚙️ ดึงตั้งค่าเว็บไซต์
     const fetchSettings = async () => {
       try {
         const res = await axios.get('http://localhost:5000/api/settings', { withCredentials: true });
         if (res.data.success && res.data.data) {
-          // Merge with default to ensure banner exists
           setSettings(prev => ({
             ...prev,
             ...res.data.data,
@@ -94,14 +97,15 @@ const AdminDashboard = () => {
     loadData();
   }, [navigate, userId, userRole]);
 
+  // ⚙️ อัปเดตการตั้งค่าเว็บไซต์ (รวมถึง Banner)
   const handleUpdateSettings = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      // 1. เซฟตั้งค่าอื่นๆ (ชื่อโปรโมชั่น, โค้ด) ลง Database ปกติ
+      // 1. บันทึกข้อมูลตั้งค่า (Banner, Promo Code) ลง Database
       const res = await axios.put('http://localhost:5000/api/admin/settings', settings, { withCredentials: true });
       
-      // 2. 🌟 ยิง API ไปให้ server.js สร้างไฟล์ .txt 🌟
+      // 2. 🌟 บันทึกเนื้อหา Banner ลงไฟล์ BannerContent.txt บนเซิร์ฟเวอร์
       await axios.post('http://localhost:5000/api/admin/save-banner-file', {
           content: settings?.banner?.content || ''
       }, { withCredentials: true });
@@ -204,6 +208,7 @@ const AdminDashboard = () => {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // 🛡️ Danger Zone: ล้างข้อมูลธุรกรรมทั้งหมดออกจากระบบ (ใช้ CONFIRM เพื่อยืนยัน)
   const handleClearAllData = async () => {
       if (clearConfirmText !== 'CONFIRM') return;
       setClearing(true);
@@ -212,6 +217,7 @@ const AdminDashboard = () => {
           if (res.data.success) {
               setClearResult(res.data.deleted);
               setClearConfirmText('');
+              alert('ล้างข้อมูลสำเร็จ!');
           }
       } catch (err) {
           console.error(err);

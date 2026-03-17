@@ -5,8 +5,9 @@ import { protectRoute } from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
 // 🟢 ปรับให้ตรงกับ Frontend ที่เรียกใช้
-router.post("/", protectRoute, sendMessage);  // ยิงมาที่ /api/chats เพื่อส่งข้อความ
-router.get("/", protectRoute, getMyChats);     // ยิงมาที่ /api/chats เพื่อดึงรายการแชท
-router.get("/:chatId", protectRoute, getMessages); 
+// 💬 ระบบแชท (Real-time Chat Support)
+router.post("/", protectRoute, sendMessage);  // ส่งข้อความใหม่/สร้างห้องแชท
+router.get("/", protectRoute, getMyChats);     // ดึงรายการห้องแชททั้งหมดที่เราคุยอยู่
+router.get("/:chatId", protectRoute, getMessages); // ดึงข้อความในห้องแชทเจาะจง
 
 export default router;

@@ -10,13 +10,13 @@ const Settings = () => {
     const [imagePreview, setImagePreview] = useState(null);
     const [imageFile, setImageFile] = useState(null);
 
-    // 📸 ฟังก์ชันเลือกรูปและ Preview
+    // 📸 ฟังก์ชันเลือกรูปและ Preview ก่อนอัปโหลดจริง
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
             setImageFile(file);
             const reader = new FileReader();
-            reader.onloadend = () => setImagePreview(reader.result);
+            reader.onloadend = () => setImagePreview(reader.result); // สร้าง URL ชั่วคราวมาโชว์บนหน้าจอ
             reader.readAsDataURL(file);
         }
     };
@@ -26,7 +26,7 @@ const Settings = () => {
         e.preventDefault();
         setIsLoading(true);
 
-        // เนื่องจากมีไฟล์รูป ต้องใช้ FormData
+        // ⚠️ ต้องใช้ FormData เพราะมีการอัปโหลดไฟล์รูปภาพ (binary) ร่วมด้วย
         const formData = new FormData();
         formData.append('phoneNumber', phoneNumber);
         if (imageFile) formData.append('imageProfile', imageFile);

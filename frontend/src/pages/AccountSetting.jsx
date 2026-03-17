@@ -56,6 +56,7 @@ const AccountSetting = () => {
 
 
 
+  // 📍 ดึงรายการที่อยู่ทั้งหมดของผู้ใช้
   const fetchAddresses = async () => {
     try {
       setLoading(true);
@@ -70,6 +71,7 @@ const AccountSetting = () => {
     }
   };
 
+  // 💾 บันทึกที่อยู่ (รองรับทั้งเพิ่มใหม่และแก้ไข)
   const handleSubmitAddress = async (e) => {
     e.preventDefault();
     try {
@@ -78,13 +80,15 @@ const AccountSetting = () => {
       let res;
 
       if (editingAddress) {
+        // กรณีแก้ไข
         res = await axiosInstance.put(`/account-settings/addresses/${editingAddress._id}`, formData, config);
       } else {
+        // กรณีเพิ่มใหม่
         res = await axiosInstance.post('/account-settings/addresses', formData, config);
       }
 
       if (res.data.success) {
-        setAddresses(res.data.addresses);
+        setAddresses(res.data.addresses); // อัปเดต UI ทันที
         setIsAdding(false);
         setEditingAddress(null);
         setFormData(initialFormState);
@@ -198,12 +202,12 @@ const AccountSetting = () => {
     fetchUser();
   }, []);
 
-  // อัปโหลดรูปโปรไฟล์ทันทีเมื่อเลือกไฟล์
+  // 🖼️ อัปโหลดรูปโปรไฟล์ทันทีเมื่อเลือกไฟล์ (อัปเดตทั้ง Backend และ LocalStorage)
   const handleProfileImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Preview ทันที
+    // 🕒 1. แสดงตัวอย่างรูปทันที (Preview)
     const previewUrl = URL.createObjectURL(file);
     setUser(prev => ({ ...prev, imageProfile: previewUrl }));
 
@@ -211,14 +215,18 @@ const AccountSetting = () => {
       setUploadingImage(true);
       const formData = new FormData();
       formData.append('imageProfile', file);
+      
+      // 🚀 2. ยิง API อัปโหลดรูปไปที่ Cloudinary (ผ่าน Backend)
       const res = await axiosInstance.put('/auth/profile', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true,
       });
+
       if (res.data.success) {
         const newUrl = res.data.data?.imageProfile;
         if (newUrl) setUser(prev => ({ ...prev, imageProfile: newUrl }));
-        // อัปเดต localStorage ถ้ามี
+        
+        // 💾 3. อัปเดตข้อมูลใน LocalStorage เพื่อให้ Navbar และส่วนอื่นๆ เปลี่ยนตามทันที
         const stored = localStorage.getItem('user');
         if (stored && stored !== 'undefined') {
           const parsed = JSON.parse(stored);
@@ -236,7 +244,7 @@ const AccountSetting = () => {
     }
   };
 
-  // บันทึกข้อมูลโปรไฟล์ (เบอร์โทร, เพศ, วันเกิด, bio)
+  // 📝 บันทึกข้อมูลโปรไฟล์อื่นๆ (เบอร์โทร, เพศ, วันเกิด, bio)
   const handleSaveProfile = async () => {
     try {
       setSavingProfile(true);
@@ -250,7 +258,7 @@ const AccountSetting = () => {
       });
       if (res.data.success) {
         setProfileMsg({ type: 'success', text: '✅ บันทึกข้อมูลสำเร็จ!' });
-        // Update localStorage if needed
+        // อัปเดตข้อมูลเบอร์โทรใน LocalStorage
         if (currentUser) {
           const updatedUser = { ...currentUser, phoneNumber: user.phoneNumber };
           localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -265,6 +273,7 @@ const AccountSetting = () => {
     }
   };
 
+  // 🔒 เปลี่ยนรหัสผ่านใหม่
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -295,12 +304,13 @@ const AccountSetting = () => {
     }
   };
 
+  // 🚮 ลบบัญชีผู้ใช้งาน (ถาวร)
   const handleDeleteAccount = async () => {
     try {
       setIsDeleting(true);
       setProfileMsg(null);
 
-      // Step 1: Verify Password first
+      // 🔐 ขั้นตอนที่ 1: ตรวจสอบรหัสผ่านก่อนเพื่อความปลอดภัย
       const verifyRes = await axiosInstance.delete('/auth/account', {
         data: { password: deletePassword, verifyOnly: true },
         withCredentials: true
@@ -310,7 +320,7 @@ const AccountSetting = () => {
         throw new Error(verifyRes.data.message || 'รหัสผ่านไม่ถูกต้อง');
       }
 
-      // Step 2: Show confirmation ONLY if password is correct
+      // ⚠️ ขั้นตอนที่ 2: ถามยืนยันอีกครั้ง (เพราะข้อมูลจะหายหมด!)
       const isConfirmed = window.confirm("⚠️ คุณต้องการลบบัญชีผู้ใช้งานอย่างถาวรใช่หรือไม่?\n\nข้อมูลโปรไฟล์ ร้านค้า และสินค้าทั้งหมดจะถูกลบและไม่สามารถกู้คืนได้");
 
       if (!isConfirmed) {
@@ -318,17 +328,16 @@ const AccountSetting = () => {
         return;
       }
 
-      // Step 3: Perform actual deletion
+      // 🚮 ขั้นตอนที่ 3: ดำเนินการลบจริง
       const res = await axiosInstance.delete('/auth/account', {
         data: { password: deletePassword },
         withCredentials: true
       });
 
       if (res.data.success) {
-        // Clear all session and cache
+        // เคลียร์ข้อมูลทั้งหมดและส่งกลับหน้าแรก
         localStorage.clear();
         sessionStorage.clear();
-        // Redirect to Home as requested
         window.location.href = '/';
       }
     } catch (err) {
@@ -337,7 +346,7 @@ const AccountSetting = () => {
       setProfileMsg({ type: 'error', text: `❌ ลบบัญชีไม่สำเร็จ: ${errorMsg}` });
     } finally {
       setIsDeleting(false);
-      setDeletePassword(''); // Reset password on failure or after cancel
+      setDeletePassword(''); 
       setTimeout(() => setProfileMsg(null), 5000);
     }
   };

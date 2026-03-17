@@ -107,12 +107,18 @@ const Community = () => {
     const [editingPost, setEditingPost] = useState(null); // { _id, content, postType, existingImages, newImages }
     const [editSubmitting, setEditSubmitting] = useState(false);
 
+    // ─────────────────────────────────────────────────────────────────
+    // 📡 ฟังก์ชัน: ดึงข้อมูลฟีด (โพสต์) จาก Backend
+    // ดึงโพสต์ทั้งหมดหรือกรองตามประเภท (Filter) และคำค้นหา (Search)
     const fetchPosts = async () => {
         setLoading(true);
         try {
             const params = {};
-            if (activeFilter !== 'ALL') params.postType = activeFilter;
-            if (searchText.trim()) params.search = searchText.trim();
+            if (activeFilter !== 'ALL') params.postType = activeFilter; // กรองตามประเภท: รีวิว, ตามหาของ ฯลฯ
+            if (searchText.trim()) params.search = searchText.trim(); // ค้นหาด้วยคีย์เวิร์ดหน้าชุมชน
+            
+            // 🔗 ไปที่ Backend: GET /api/community
+            // 🛠️ Controller: getAllPosts จะดึงข้อมูล Author และ Likes/Comments มาให้ด้วย
             const res = await axios.get(`${API}/community`, { params, withCredentials: true });
             if (res.data.success) setPosts(res.data.data);
         } catch (err) {
@@ -200,11 +206,14 @@ const Community = () => {
         }
     };
 
+    // ❤️ กดไลก์โพสต์
     const handleLike = async (postId) => {
         if (!currentUser) { navigate('/login'); return; }
         try {
+            // 🔗 PUT /api/community/:postId/like
             const res = await axios.put(`${API}/community/${postId}/like`, {}, { withCredentials: true });
             if (res.data.success) {
+                // อัปเดตยอดไลก์ใน State ทันทีเพื่อให้ UI เปลี่ยน (Optimistic Update)
                 setPosts(prev => prev.map(p => {
                     if (p._id !== postId) return p;
                     return { ...p, likes: res.data.data };
@@ -215,11 +224,14 @@ const Community = () => {
         }
     };
 
+    // 💬 คอมเมนต์ใต้โพสต์
     const handleComment = async (postId, text) => {
         if (!currentUser) { navigate('/login'); return; }
         try {
+            // 🔗 POST /api/community/:postId/comment
             const res = await axios.post(`${API}/community/${postId}/comment`, { text }, { withCredentials: true });
             if (res.data.success) {
+                // อัปเดตรายการคอมเมนต์ในโพสต์นั้นๆ
                 setPosts(prev => prev.map(p => p._id === postId ? { ...p, comments: res.data.data } : p));
             }
         } catch (err) { console.error('comment error', err); alert(err.response?.data?.message || 'เกิดข้อผิดพลาด'); }
@@ -245,23 +257,30 @@ const Community = () => {
         } catch (err) { console.error('delete post error', err); alert('ไม่สามารถลบโพสต์ได้'); }
     };
 
+    // ✍️ ฟังก์ชัน: แก้ไขโพสต์ที่มีอยู่เดิม
+    // ส่งข้อมูลที่แก้ไข (Content, PostType) และจัดการรูปภาพ (ของเดิมที่จะเก็บไว้ + รูปใหม่)
     const handleEditPost = async (postId, editData) => {
         try {
             const formData = new FormData();
             formData.append('content', editData.content);
             formData.append('postType', editData.postType);
+            
+            // 🖼️ ส่งรายชื่อ URL รูปเดิมที่ User "ยังเก็บไว้" (ไม่กดกากบาททิ้ง)
             formData.append('keepImages', JSON.stringify(editData.existingImages || []));
 
-            // เพิ่มรูปใหม่ที่เลือกไว้
+            // 📤 เพิ่มไฟล์รูปภาพใหม่เข้าไปใน FormData (ถ้ามี)
             if (editData.newImages && editData.newImages.length > 0) {
                 editData.newImages.forEach(img => formData.append('images', img));
             }
 
+            // 🔗 ไปที่ Backend: PUT /api/community/:postId
+            // 🛠️ Controller: updatePost จะทำการอัปโหลดรูปใหม่ขึ้น Cloudinary และรวมกับรูปเดิมที่ยังเก็บอยู่
             const res = await axios.put(`${API}/community/${postId}`, formData, {
                 withCredentials: true,
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             if (res.data.success) {
+                // อัปเดต State ในหน้า UI ทันทีโดยไม่ต้องดึงข้อมูลใหม่ทั้งหมด
                 setPosts(prev => prev.map(p => {
                     if (p._id !== postId) return p;
                     return {
@@ -305,19 +324,25 @@ const Community = () => {
         setVideo(null);
     };
 
+    // ─────────────────────────────────────────────────────────────────
+    // 🚀 ฟังก์ชัน: สร้างโพสต์ใหม่ (ดรอปดาวน์ Modal)
+    // ─────────────────────────────────────────────────────────────────
     const handleCreatePost = async (e) => {
         e.preventDefault();
         if (!form.content.trim()) { setFormError('กรุณาพิมพ์เนื้อหาโพสต์'); return; }
         setSubmitting(true);
         setFormError('');
         try {
+            // เตรียมส่ง FormData เพราะมีการแนบไฟล์รูป
             const formData = new FormData();
             formData.append('content', form.content);
             formData.append('postType', form.postType);
 
+            // แยกแท็กใส่กลับเป็น Array JSON
             const tagsArray = form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
             formData.append('tags', JSON.stringify(tagsArray));
 
+            // ถ้ารูปมีหลายรูป
             images.forEach(img => {
                 formData.append('images', img);
             });
@@ -326,17 +351,20 @@ const Community = () => {
                 formData.append('video', video);
             }
 
+            // 🔗 ไปที่ Backend: POST /api/community
+            // 🛠️ Controller: createPost ใน community.controller.js
             const res = await axios.post(`${API}/community`, formData, {
                 withCredentials: true,
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
             if (res.data.success) {
-                setShowCreateModal(false);
+                setShowCreateModal(false); // ปิด Modal สร้าง
+                // รีเซ็ตค่าเพื่อเริ่มใหม่
                 setForm({ content: '', postType: 'GENERAL', tags: '' });
                 setImages([]);
                 setVideo(null);
-                fetchPosts();
+                fetchPosts(); // ดึงโพสต์ล่าสุดแสดงบนฟีดเลยไม่ต้อง Refresh หน้า
             }
         } catch (err) {
             setFormError(err.response?.data?.message || 'เกิดข้อผิดพลาด');
@@ -444,6 +472,7 @@ const Community = () => {
                 </aside>
             </div>
 
+            {/* 🔴 Modal: สำหรับสร้างเนื้อหา (ถ้าไม่มีบัญชีกดปุ่มแล้วจะถูกส่งไป /login ทันที ดูจาก onClick ปุ่มเพิ่มโพสต์ ด้านบน) */}
             {/* Create Post Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
