@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, User, ArrowRight, Loader2, Repeat, ArrowLeft } from 'lucide-react'; // 🟢 นำเข้า Repeat เพิ่ม
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
 import logo from '../assets/logo0.png';
 
 const Login = () => {
@@ -20,9 +20,7 @@ const Login = () => {
     setErrorMsg('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', formData, {
-        withCredentials: true
-      });
+      const response = await axiosInstance.post('/auth/login', formData);
 
       if (response.data.success) {
         localStorage.setItem('user', JSON.stringify(response.data.user));

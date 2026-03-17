@@ -3,11 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Bell, MessageSquare, User, LogOut, ClipboardList, Settings, Store, Shield, ShoppingCart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+// 🌟 เปลี่ยนจากการ import axios ปกติ เป็น axiosInstance ที่เราสร้างไว้
+import { axiosInstance } from '../utils/axios';
 import logo from '../assets/logo0.png';
 
-
-const API = 'http://localhost:5000/api';
+// ❌ ลบบรรทัด const API = 'http://localhost:5000/api'; ออกไปเลยครับ เพราะเราใช้ baseURL จาก axiosInstance แล้ว
 
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;
@@ -38,9 +38,8 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const handleSearch = (e) => {
     e.preventDefault();
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setShowDropdown(false);
-    
+    navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    setShowDropdown(false);
   };
   const notifRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -63,7 +62,8 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
   const fetchNotifications = async () => {
     if (!currentUser) return;
     try {
-      const res = await axios.get(`${API}/notifications`, { withCredentials: true });
+      // 🌟 เปลี่ยนจาก axios.get(`${API}/...`) เป็น axiosInstance.get('/...')
+      const res = await axiosInstance.get('/notifications');
       if (res.data.success) {
         setNotifications(res.data.data);
         setUnreadCount(res.data.data.filter(n => !n.isRead).length);
@@ -77,11 +77,9 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
     fetchNotifications();
     fetchCartCount();
 
-    // Listen for storage events (cross-tab sync)
     const handleStorageChange = () => fetchCartCount();
     window.addEventListener('storage', handleStorageChange);
-    
-    // Custom interval to catch changes in the same tab (since we don't have a global state)
+
     const interval = setInterval(fetchCartCount, 2000);
 
     return () => {
@@ -90,22 +88,19 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
     };
   }, []);
 
-  // ปิด panel เมื่อคลิกนอก
   useEffect(() => {
     const handleClickOutside = (e) => {
-      // 1. ถ้าคลิกนอกกรอบกระดิ่งแจ้งเตือน ให้ปิดการแจ้งเตือน
       if (notifRef.current && !notifRef.current.contains(e.target)) {
         setShowNotifications(false);
       }
-      // 2. ถ้าคลิกนอกกรอบโปรไฟล์ ให้ปิด Dropdown เมนู
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setShowDropdown(false);
       }
     };
-    if (showDropdown) fetchCartCount(); // Update count when dropdown is opened
+    if (showDropdown) fetchCartCount();
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [setShowDropdown]); // 👈 ใส่ dependencies ด้วย
+  }, [setShowDropdown]);
 
   const handleToggleNotifications = async () => {
     const next = !showNotifications;
@@ -113,7 +108,8 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
     setShowDropdown(false);
     if (next && unreadCount > 0) {
       try {
-        await axios.put(`${API}/notifications/mark-read`, {}, { withCredentials: true });
+        // 🌟 เปลี่ยนเป็น axiosInstance.put
+        await axiosInstance.put('/notifications/mark-read', {});
         setUnreadCount(0);
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       } catch (error) {
@@ -124,7 +120,8 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
 
   const handleLogout = async () => {
     try {
-      await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
+      // 🌟 เปลี่ยนเป็น axiosInstance.post
+      await axiosInstance.post('/auth/logout', {});
       localStorage.removeItem('user');
       navigate('/login');
     } catch (error) {
@@ -146,30 +143,24 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
         </Link>
 
         <form onSubmit={handleSearch} className="flex-1 max-w-3xl relative">
-
           <input
             type="text"
-            value={searchQuery} // 2. ผูกค่าในช่องนี้ให้ตรงกับตัวแปร searchQuery
-            onChange={(e) => setSearchQuery(e.target.value)} // 3. ทุกครั้งที่พิมพ์อักษรใหม่ ให้ไปอัปเดตค่าใน State
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="ค้นหาสินค้า..."
             className="w-full bg-[#151522] border border-[#2a2a3e] rounded-md py-2.5 pl-5 pr-12 focus:outline-none focus:border-[#8b2cf5] transition-all text-sm placeholder-gray-500 text-white"
           />
-
-          {/* 4. เติม type="submit" ให้ปุ่ม เพื่อให้ฟอร์มรู้ว่านี่คือปุ่มสำหรับตกลง/ค้นหา */}
           <button type="submit" className="absolute right-2 top-1.5 p-1.5 bg-[#8b2cf5] rounded-md hover:bg-[#7220c7] transition">
             <Search className="w-4 h-4 text-white" />
           </button>
-
         </form>
 
         <div className="flex items-center gap-5 w-auto justify-end">
-
           <Link to="/shops" className="hidden md:flex items-center gap-2 text-gray-300 hover:text-[#8b2cf5] font-medium transition-colors mr-2">
             <Store className="w-5 h-5" />
             ร้านค้า
           </Link>
 
-          {/* 🔔 Notification Bell */}
           <div className="relative" ref={notifRef}>
             <div
               className="relative cursor-pointer hover:text-[#8b2cf5] transition"
@@ -197,7 +188,7 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
                           if (notif.type === 'NEW_LIKE' || notif.type === 'NEW_COMMENT') {
                             navigate(`/community?postId=${notif.linkId}`);
                           } else {
-                            navigate(`/profile/${notif.sender._id}`);
+                            navigate(`/profile/${notif.sender?._id}`);
                           }
                           setShowNotifications(false);
                         }}
@@ -225,7 +216,6 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
             )}
           </div>
 
-          {/* 💬 Chat */}
           <Link to="/chat" className="relative cursor-pointer hover:text-[#8b2cf5] transition">
             <MessageSquare className="w-6 h-6 text-gray-300 hover:text-[#8b2cf5] transition" />
           </Link>

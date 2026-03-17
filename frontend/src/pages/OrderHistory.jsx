@@ -6,7 +6,6 @@ import {
     ArrowLeft, ClipboardList, Repeat, Package, Clock,
     MapPin, CreditCard, ChevronRight, ShoppingBag
 } from 'lucide-react';
-import axios from 'axios';
 import logo from '../assets/logo0.png';
 import Navbar from '../components/Navbar';
 
@@ -39,7 +38,7 @@ const OrderHistory = () => {
 
     const handleLogout = async () => {
         try {
-            await axios.post('http://localhost:5000/api/auth/logout', {}, { withCredentials: true });
+            await axiosInstance.post('/auth/logout', {});
             localStorage.removeItem('user');
             navigate('/login');
         } catch (error) {

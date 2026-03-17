@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ShoppingBag, MessageSquare, Bell, User, Star, Repeat, Users, PackageOpen, LogOut, Store, ClipboardList, Settings, Trash2 } from 'lucide-react';
+// 🌟 เราจะใช้ axiosInstance เป็นหลัก
 import { axiosInstance } from '../utils/axios';
-import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo0.png';
 import Navbar from '../components/Navbar';
@@ -13,22 +13,23 @@ const Home = () => {
   const [siteSettings, setSiteSettings] = useState(null);
   const [userData, setUserData] = useState(JSON.parse(localStorage.getItem('user')));
 
-  // 🛠️ Helper: รองรับทั้ง relative path (/uploads/xxx) และ absolute URL (http://...)
+  // 🛠️ Helper: แก้ให้ดึงรูปจาก Backend บน Render ได้ถูกต้อง
   const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    return `http://localhost:5000${path}`;
+    // 🌟 เปลี่ยนจาก localhost เป็น URL ของ Backend จริง
+    return `https://appdevproject-la7w.onrender.com${path}`;
   };
 
   const [showDropdown, setShowDropdown] = useState(false);
-  const currentUser = JSON.parse(localStorage.getItem('user'));
 
-  const fetchMyProfile = async () => { //หน้าโปรไฟล์
+  const fetchMyProfile = async () => {
     const currentUser = JSON.parse(localStorage.getItem('user'));
     if (!currentUser) return;
     try {
       const targetId = currentUser.id || currentUser._id;
-      const res = await axios.get(`http://localhost:5000/api/auth/profile/${targetId}`, { withCredentials: true });
+      // 🌟 เปลี่ยนมาใช้ axiosInstance
+      const res = await axiosInstance.get(`/auth/profile/${targetId}`);
       if (res.data.success) {
         setUserData(res.data.data);
         localStorage.setItem('user', JSON.stringify(res.data.data));
@@ -41,13 +42,12 @@ const Home = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/products');
+        // 🌟 เปลี่ยนมาใช้ axiosInstance
+        const response = await axiosInstance.get('/products');
         if (response.data.success) {
-          //เรียงลำดับจากวันที่สร้างล่าสุด (ใหม่สุดอยู่บนสุด)
           const sortedProducts = response.data.data.sort((a, b) => {
             return new Date(b.createdAt) - new Date(a.createdAt);
           });
-          //ตัดเอามาแค่ 1 ชิ้นแรก (1 แถว แถวละ 4 ชิ้น)
           setProducts(sortedProducts.slice(0, 4));
         }
       } catch (error) {
@@ -59,7 +59,8 @@ const Home = () => {
 
     const fetchSiteSettings = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/settings');
+        // 🌟 เปลี่ยนมาใช้ axiosInstance
+        const response = await axiosInstance.get('/settings');
         if (response.data.success) {
           setSiteSettings(response.data.data);
         }
@@ -89,7 +90,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-[#05050f] text-white font-sans pb-10">
       <Navbar
-        currentUser={userData} // ต้องเป็น userData ที่ผ่านการ fetchMyProfile แล้ว
+        currentUser={userData}
         showDropdown={showDropdown}
         setShowDropdown={setShowDropdown}
       />
@@ -127,7 +128,6 @@ const Home = () => {
               </div>
             </Link>
 
-            {/* 🌟 กล่องลิงก์ร้านค้า (มีอยู่แล้ว แค่เน้นย้ำว่าอันนี้ก็วิ่งไป /shops) 🌟 */}
             <Link to="/shops" className="flex-1 bg-[#12121e] rounded-xl border border-[#2a2a3e] p-6 flex items-center justify-center gap-4 hover:border-[#4361ee] cursor-pointer transition group relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-[#4361ee]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <div className="p-3 bg-[#0a1128] rounded-full border border-[#4361ee]/30">
@@ -143,12 +143,9 @@ const Home = () => {
       </div>
 
       {/* 🟢 Product Grid */}
-
       <div className="max-w-7xl mx-auto px-4 mt-10">
         <div className="flex justify-between items-end mb-6">
           <h2 className="text-xl font-bold border-l-4 border-[#8b2cf5] pl-3">สินค้ามาใหม่</h2>
-
-          {/* เพิ่มปุ่มกดไปหน้าค้นหา เพื่อดูสินค้าทั้งหมด */}
           <Link to="/search" className="text-sm font-medium text-[#8b2cf5] hover:text-white transition-colors">
             ดูทั้งหมด &gt;
           </Link>
@@ -176,8 +173,7 @@ const Home = () => {
                   <div className="absolute top-2 left-2 px-2 py-1 bg-gradient-to-r from-[#8b2cf5] to-[#4361ee] rounded text-[10px] font-bold text-white z-10">
                     {item.tradeType === 'TRADE_ONLY' ? 'TRADE ONLY' : item.tradeType === 'SELL_ONLY' ? 'SELL ONLY' : 'SELL & TRADE'}
                   </div>
-                  {/* ปุ่มลบสำหรับ Admin */}
-                  {currentUser?.role === 'admin' && (
+                  {userData?.role === 'admin' && (
                     <button
                       onClick={(e) => handleAdminDeleteProduct(e, item._id)}
                       className="absolute top-2 right-2 z-20 p-1.5 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm"
@@ -191,30 +187,20 @@ const Home = () => {
                       src={getImageUrl(item.images[0])}
                       alt={item.productName}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
                     />
-                  ) : null}
-                  <div
-                    className="w-full h-full items-center justify-center"
-                    style={{ display: (item.images && item.images.length > 0) ? 'none' : 'flex' }}
-                  >
+                  ) : (
                     <PackageOpen className="w-12 h-12 text-[#2a2a3e]" />
-                  </div>
+                  )}
                 </div>
 
                 <div className="p-3 flex flex-col flex-grow">
                   <h3 className="text-sm font-medium text-gray-200 line-clamp-2 mb-2 group-hover:text-white">
                     {item.productName}
                   </h3>
-
                   <div className="mt-auto">
                     <div className="text-[#8b2cf5] font-bold text-lg mb-1">
                       {item.tradeType === 'TRADE_ONLY' ? 'เสนอแลก' : `฿ ${item.price?.toLocaleString() || 0}`}
                     </div>
-
                     <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-[#2a2a3e]">
                       <span className="truncate w-24 hover:text-white">{item.ownerId?.username || 'Unknown User'}</span>
                       <div className="flex items-center gap-1">
@@ -229,7 +215,6 @@ const Home = () => {
           </div>
         )}
       </div>
-
     </div>
   );
 };

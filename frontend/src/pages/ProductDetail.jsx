@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Store, Star, MapPin, Package, ShoppingBag, MessageSquare, Repeat, Clock, ChevronRight } from 'lucide-react';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -12,7 +12,7 @@ const ProductDetail = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/products/${id}`);
+        const res = await axiosInstance.get(`/products/${id}`);
         if (res.data.success) {
           setProduct(res.data.data);
         }

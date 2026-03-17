@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, X, Upload, Image as ImageIcon, Save } from 'lucide-react';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
 
 const EditProduct = () => {
   const { id } = useParams();
@@ -21,7 +21,7 @@ const EditProduct = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/products/${id}`);
+        const res = await axiosInstance.get(`/products/${id}`);
         if (res.data.success) {
           const product = res.data.data;
           setProductForm({
@@ -71,9 +71,8 @@ const EditProduct = () => {
     }
 
     try {
-      const res = await axios.put(`http://localhost:5000/api/products/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        withCredentials: true
+      const res = await axiosInstance.put(`/products/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       if (res.data.success) {

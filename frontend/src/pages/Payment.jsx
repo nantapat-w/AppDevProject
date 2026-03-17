@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+
 import { CreditCard, QrCode, ArrowLeft, Loader2, CheckCircle, ChevronRight, Copy, Lock, Smartphone, Repeat, MapPin, ShieldCheck, Receipt, ClipboardList, Plus, X, Save, MapPinned, Ticket } from 'lucide-react';
 import { axiosInstance } from '../utils/axios';
 import logo from '../assets/logo0.png';

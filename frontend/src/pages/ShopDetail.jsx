@@ -172,9 +172,7 @@ const ShopDetail = () => {
   const handleDeleteShop = async () => {
     setDeleteLoading(true);
     try {
-      const res = await axios.delete(`http://localhost:5000/api/shops/${id}`, {
-        withCredentials: true
-      });
+      const res = await axiosInstance.delete(`/shops/${id}`);
 
       if (res.data.success) {
         alert('🗑️ ลบร้านค้าเรียบร้อยแล้ว');

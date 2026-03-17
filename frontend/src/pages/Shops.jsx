@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, ArrowLeft, Store, Star, MapPin, X, Trash2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+// 🌟 เปลี่ยนมาใช้ axiosInstance เป็นหลัก และลบ import axios ตัวเดิมออกได้เลย
 import { axiosInstance } from '../utils/axios';
 
 const Shops = () => {
@@ -29,14 +29,15 @@ const Shops = () => {
   useEffect(() => {
     const fetchShops = async () => {
       try {
+        // 🌟 ดึงร้านค้าทั้งหมดผ่าน axiosInstance
         const response = await axiosInstance.get('/shops');
         if (response.data.success) {
           setShops(response.data.data);
         }
 
-        // ดึงข้อมูลร้านของตัวเองถ้าล็อกอินอยู่
+        // 🌟 ดึงข้อมูลร้านของตัวเองถ้าล็อกอินอยู่ (ใช้ axiosInstance เพื่อส่ง Cookie อัตโนมัติ)
         if (currentUser) {
-          const myShopRes = await axios.get('http://localhost:5000/api/shops/my-shop', { withCredentials: true });
+          const myShopRes = await axiosInstance.get('/shops/my-shop');
           if (myShopRes.data.success && myShopRes.data.hasShop) {
             setMyShop(myShopRes.data.data);
           }
@@ -59,6 +60,13 @@ const Shops = () => {
       shop.shopDescription?.toLowerCase().includes(q)
     );
   }, [shops, searchQuery]);
+
+  // 🛠️ Helper: จัดการ URL รูปภาพโลโก้ร้าน
+  const getLogoUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return `https://appdevproject-la7w.onrender.com${path}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#05050f] text-white font-sans pb-10">
@@ -136,7 +144,6 @@ const Shops = () => {
           </div>
         ) : (
           <>
-            {/* แสดงจำนวนผลลัพธ์เมื่อค้นหา */}
             {searchQuery && (
               <p className="text-sm text-gray-400 mb-4">
                 พบ <span className="text-white font-bold">{filteredShops.length}</span> ร้านค้า สำหรับ "{searchQuery}"
@@ -162,7 +169,7 @@ const Shops = () => {
                       <div className="flex items-start gap-4">
                         <div className="w-16 h-16 rounded-full bg-[#1c1c2b] border border-[#2a2a3e] flex-shrink-0 overflow-hidden group-hover:border-[#8b2cf5] transition-colors">
                           {shop.shopLogo ? (
-                            <img src={shop.shopLogo} alt={shop.shopName} className="w-full h-full object-cover" />
+                            <img src={getLogoUrl(shop.shopLogo)} alt={shop.shopName} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-500 bg-gradient-to-tr from-[#1c1c2b] to-[#2a2a3e]">
                               {shop.shopName?.charAt(0) || 'S'}
@@ -191,7 +198,6 @@ const Shops = () => {
                         </div>
                       </div>
                     </Link>
-                    {/* 🗑️ ปุ่มลบสำหรับ Admin */}
                     {isAdmin && (
                       <button
                         onClick={(e) => handleAdminDeleteShop(e, shop._id, shop.shopName)}

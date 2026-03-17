@@ -2,20 +2,14 @@ import axios from 'axios';
 
 // 🌐 ตั้งค่า URL ของ Backend
 const isDev = import.meta.env.MODE === 'development';
-
-// 🌟 แก้ไขตรงนี้: 
-// ถ้าเป็น Dev ให้ใช้ localhost 
-// แต่ถ้าไม่ใช่ Dev (เช่นบน Render) ต้องใช้ VITE_API_URL เท่านั้น 
-// ถ้าลืมตั้งค่าใน Render ให้มันฟ้อง Error ออกมาเลย ดีกว่าปล่อยให้มันวิ่งไปหา localhost แล้วสมัครไม่ได้
 const API_BASE_URL = isDev
     ? 'http://localhost:5000/api'
-    : (import.meta.env.VITE_API_URL || 'https://appdevproject-la7w.onrender.com/api'); // ใส่ URL Backend จริงของคุณเป็นค่าสำรองไว้เลย
+    : 'https://appdevproject-la7w.onrender.com/api'; // 🌟 บังคับใส่ URL Backend จริงลงไปเลยครับ
 
 export const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
     withCredentials: true,
 });
-
 // --- ส่วน Interceptor ด้านล่างนี้สมบูรณ์อยู่แล้ว ใช้ตามเดิมได้เลยครับ ---
 
 let isRefreshing = false;
