@@ -7,8 +7,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { axiosInstance } from '../utils/axios';
 import logo from '../assets/logo0.png';
 
-// ❌ ลบบรรทัด const API = 'http://localhost:5000/api'; ออกไปเลยครับ เพราะเราใช้ baseURL จาก axiosInstance แล้ว
-
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;
   if (diff < 60) return 'เมื่อกี้';

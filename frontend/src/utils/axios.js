@@ -1,10 +1,7 @@
 import axios from 'axios';
 
 // 🌐 ตั้งค่า URL ของ Backend
-const isDev = import.meta.env.MODE === 'development';
-const API_BASE_URL = isDev
-    ? 'http://localhost:5000/api'
-    : (import.meta.env.VITE_API_URL || 'https://appdevproject-la7w.onrender.com/api');
+const API_BASE_URL = 'https://appdevproject-la7w.onrender.com/api';
 
 export const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
