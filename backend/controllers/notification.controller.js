@@ -1,12 +1,13 @@
 import Notification from "../models/Notification.model.js";
 
-// 🔔 1. ดึงการแจ้งเตือนทั้งหมดของฉัน
+// 🔔 1. ดึงการแจ้งเตือนทั้งหมดของฉัน (Get My Notifications)
+// ทำงาน: ดึงข้อมูลการแจ้งเตือนที่ Receiver เป็นเรา -> ดึงข้อมูล Sender (ชื่อ/รูป) มาแสดงด้วย -> เรียงจากใหม่ไปเก่า (20 อันล่าสุด)
 export const getMyNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({ receiver: req.user._id })
             .populate("sender", "username imageProfile")
             .sort({ createdAt: -1 })
-            .limit(20); // ดึงมาแค่ 20 อันล่าสุดพอครับ
+            .limit(20); 
 
         res.status(200).json({ success: true, data: notifications });
     } catch (error) {

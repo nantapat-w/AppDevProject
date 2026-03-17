@@ -9,6 +9,9 @@ import logo from '../assets/logo0.png';
 
 const API = 'http://localhost:5000/api';
 
+// 🕒 ฟังก์ชันช่วยคำนวณเวลาที่ผ่านไป (Time Ago)
+// รับค่า: dateStr (วันที่/เวลา)
+// ผลลัพธ์: ข้อความเช่น "เมื่อกี้", "5 นาทีที่แล้ว"
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;
   if (diff < 60) return 'เมื่อกี้';
@@ -17,6 +20,9 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)} วันที่แล้ว`;
 }
 
+// 👤 คอมโพเนนต์แสดงรูปโปรไฟล์ (Avatar)
+// ถ้ามีรูป (src) -> แสดงรูปพร้อมกรอบ
+// ถ้าไม่มีรูป -> แสดงตัวอักษรตัวแรกของชื่อบนพื้นหลัง Gradient
 function Avatar({ name, src, size = 9 }) {
   const initials = name ? name.charAt(0).toUpperCase() : '?';
   return src ? (
@@ -50,6 +56,7 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
+  // 🛒 ดึงจำนวนสินค้าในตะกร้าจาก LocalStorage
   const fetchCartCount = () => {
     try {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -60,6 +67,7 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
     }
   };
 
+  // 🔔 ดึงข้อมูลการแจ้งเตือนจากหลังบ้าน
   const fetchNotifications = async () => {
     if (!currentUser) return;
     try {
@@ -122,11 +130,12 @@ const Navbar = ({ currentUser, showDropdown, setShowDropdown }) => {
     }
   };
 
+  // 🚪 ออกจากระบบ
   const handleLogout = async () => {
     try {
       await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
-      localStorage.removeItem('user');
-      navigate('/login');
+      localStorage.removeItem('user'); // ล้างข้อมูลผู้ใช้ในเครื่อง
+      navigate('/login'); // เด้งไปหน้าล็อกอิน
     } catch (error) {
       console.error('Logout error', error);
     }

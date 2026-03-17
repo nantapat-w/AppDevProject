@@ -4,26 +4,38 @@ import { ArrowLeft, Store, Star, MapPin, Package, ShoppingBag, MessageSquare, Re
 import axios from 'axios';
 
 const ProductDetail = () => {
+  // ดึง :id จาก URL (ID ของสินค้า)
   const { id } = useParams();
   const navigate = useNavigate();
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [shopProductCount, setShopProductCount] = useState(null);
 
+  // ─── STATE หลัก ───
+  const [product, setProduct] = useState(null);               // ข้อมูลสินค้าฉบับเต็ม
+  const [loading, setLoading] = useState(true);               // สถานะโหลดข้อมูลตอนเปิดหน้า
+  const [shopProductCount, setShopProductCount] = useState(null); // จำนวนสินค้าที่มีทั้งหมดในร้านนี้ 
+
+  // ─────────────────────────────────────────────────────────────────
+  // 📡 useEffect: ดึงข้อมูลสินค้าเมื่อเริ่มโหลดเพจ
+  // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     const fetchProduct = async () => {
       try {
+        // 🔗 ไปที่ Backend: GET /api/products/:id
+        // 🛠️ Controller: getProductById ใน product.controller.js
+        // 📥 สิ่งที่ได้: ข้อมูลสินค้า + populate ownerId/shopId และได้ shopProductCount (จำนวนสินค้าในร้าน)
         const res = await axios.get(`http://localhost:5000/api/products/${id}`);
         if (res.data.success) {
-          setProduct(res.data.data);
+          setProduct(res.data.data); // เซ็ตข้อมูลสินค้าลง State ตัวแปร
+          // จำนวนสินค้าของร้านค้า (ถ้าสินค้านี้ผูกกับร้าน)
           if (res.data.shopProductCount !== null) {
             setShopProductCount(res.data.shopProductCount);
           }
         }
       } catch (error) {
         console.error("Error fetching product:", error);
+        // ❌ กรณี Error หรือไม่พบสินค้าให้เด้งกลับไปหน้า Home
+        // navigate('/');
       } finally {
-        setLoading(false);
+        setLoading(false); // ปิด Spinner ไม่ว่าจะสำเร็จหรือพัง
       }
     };
     fetchProduct();
@@ -32,35 +44,47 @@ const ProductDetail = () => {
   if (loading) return <div className="min-h-screen flex justify-center items-center bg-[#05050f]"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[#8b2cf5]"></div></div>;
   if (!product) return <div className="min-h-screen flex justify-center items-center bg-[#05050f] text-white">ไม่พบข้อมูลสินค้านี้</div>;
 
-  const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+  // 👤 เช็คสิทธิ์ : ผู้ใช้คือเจ้าของสินค้านี้ไหม? (ป้องกันการกดซื้อ/แชทกับตัวเอง)
+  const currentUser = JSON.parse(localStorage.getItem('user') || 'null'); // ดึง token json ของ user มาจาก localstorage ที่ติดมาตอนล็อคอิน
   const myId = String(currentUser?.id || currentUser?._id || "");
   const ownerId = String(product.ownerId?._id || product.ownerId || "");
   const isOwner = myId && ownerId && myId === ownerId;
 
+  // ─────────────────────────────────────────────────────────────────
+  // 🛒 ฟังก์ชัน: เพิ่มสินค้าลงตะกร้า (Cart)
+  // ─────────────────────────────────────────────────────────────────
   const handleAddToCart = () => {
-    if (isOwner) return;
+    if (isOwner) return; // ถ้าเป็นสินค้าตัวเอง ไม่ให้หยิบใส่ตะกร้า
+
+    // 1. ดึงข้อมูลตะกร้าจาก LocalStorage คืนมาเป็น Array
     const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    // 2. เช็คว่ามีสินค้านี้อยู่ในตะกร้าแล้วหรือยัง
     const itemInCart = existingCart.find(item => item._id === product._id);
     
     if (itemInCart) {
-      itemInCart.quantity += 1;
+      itemInCart.quantity += 1; // ถ้ามีอยู่แล้วให้+1 จำนวนขึ้น
     } else {
-      existingCart.push({ ...product, quantity: 1 });
+      existingCart.push({ ...product, quantity: 1 }); // ถ้าไม่มีก็นำเข้าตะกร้าทั้ง object โดยมีฟิลด์ quantity=1
     }
     
+    // 3. เซฟกลับลงไปใหม่ และเปลี่ยนหน้าไป /cart
     localStorage.setItem('cart', JSON.stringify(existingCart));
     navigate('/cart');
   };
 
+  // ─────────────────────────────────────────────────────────────────
+  // 💬 ฟังก์ชัน: กดแชทคุยกับร้าน/เจ้าของสินค้า
+  // ─────────────────────────────────────────────────────────────────
   const handleChatWithShop = () => {
-    if (isOwner) return;
+    if (isOwner) return; // ป้องกันการพาไปแชทเพื่อคุยกับตัวเอง
+    // เปลี่ยนหน้าไปที่ /chat โดยส่ง state parameters แนบไปด้วย เพื่อให้หน้าแชทรู้ว่ากำลังจะคุยกับใคร
     navigate('/chat', {
       state: {
-        receiverId: product.ownerId?._id || product.ownerId,
-        receiverName: product.ownerId?.username || 'ร้านค้า',
+        receiverId: product.ownerId?._id || product.ownerId, // ส่ง ObjectId ของเจ้าของ
+        receiverName: product.ownerId?.username || 'ร้านค้า', // ส่งชื่อ
         shopName: product.ownerId?.username, 
-        chatType: 'TRADE',
-        productId: product._id
+        chatType: 'TRADE', // ระบุบอิงว่าคุยเรื่องอะไร
+        productId: product._id // ว่าคุยเรื่องสินค้าไหน
       }
     });
   };
@@ -127,7 +151,7 @@ const ProductDetail = () => {
              </p>
           </div>
 
-          {/* Shop Card */}
+          {/* ส่วนข้อมูลร้านค้า (Shop Card) ถ้ามีร้านโชว์ร้าน ถ้ามาเดี่ยวโชว์หน้าโปรไฟล์ (คนธรรมดา) */}
           {product.shopId ? (
            <Link to={`/shops/${product.shopId._id || product.shopId}`} className="block">
            <div className="bg-[#0a0a16] border border-[#2a2a3e] rounded-2xl overflow-hidden hover:border-[#4361ee] transition group shadow-xl">
@@ -135,6 +159,7 @@ const ProductDetail = () => {
                 <div className="flex items-center gap-4">
                    <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-[#8b2cf5] to-[#4361ee] p-0.5">
                       <div className="w-full h-full bg-[#12121e] rounded-xl overflow-hidden flex items-center justify-center">
+                         {/* รูป Logo ร้านค้า */}
                          {product.shopId?.shopLogo ? (
                            <img src={product.shopId.shopLogo} className="w-full h-full object-cover" />
                          ) : (
@@ -155,10 +180,12 @@ const ProductDetail = () => {
           </div>
           </Link>
           ) : (
+           // กรณีเป็นผู้ขายที่ไม่มีร้าน (แสดงเป็นโปรไฟล์ปกติ)
            <div className="bg-[#0a0a16] border border-[#2a2a3e] rounded-2xl overflow-hidden shadow-xl">
              <div className="p-5 flex items-center gap-4">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-[#8b2cf5] to-[#4361ee] p-0.5">
                       <div className="w-full h-full bg-[#12121e] rounded-xl overflow-hidden flex items-center justify-center">
+                         {/* รูปโปรไฟล์เจ้าของ */}
                          {product.ownerId?.imageProfile ? (
                            <img src={product.ownerId.imageProfile} className="w-full h-full object-cover" />
                          ) : (

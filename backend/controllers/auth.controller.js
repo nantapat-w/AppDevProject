@@ -5,7 +5,9 @@ import bcrypt from "bcryptjs";
 import redis from "../utils/redis.js";
 import sendEmail from "../utils/sendEmail.js"; // 📧 อย่าลืม import ตัวส่งเมลที่นายน้อยทำไว้นะครับ!
 
-// 🔑 1. ฟังก์ชันสร้าง Token
+// 🔑 1. ฟังก์ชันสร้าง Token (AccessToken และ RefreshToken)
+// AccessToken: ใช้ยืนยันตัวตนสั้นๆ (15 นาที) เพื่อเข้าถึง API ต่างๆ
+// RefreshToken: ใช้ขอ AccessToken ใหม่เมื่อหมดอายุ (7 วัน)
 export const generateToken = (user) => {
     const accessToken = jwt.sign(
         { id: user._id, role: user.role },
@@ -22,11 +24,14 @@ export const generateToken = (user) => {
     return { accessToken, refreshToken };
 };
 
-// 📝 2. ระบบสมัครสมาชิก
+// 📝 2. ระบบสมัครสมาชิก (Register)
+// รับค่า: username, email, password
+// คืนค่า: ข้อมูลผู้ใช้เบื้องต้น ถ้าสมัครสำเร็จ
 export const register = async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
+        // ตรวจสอบว่ามี User หรือ Email นี้ในฐานข้อมูลหรือยัง
         const existingUser = await User.findOne({
             $or: [{ username: username }, { email: email }]
         });
@@ -35,6 +40,7 @@ export const register = async (req, res) => {
             return res.status(400).json({ success: false, message: "อีเมลหรือชื่อผู้ใช้นี้ถูกใช้งานไปแล้ว" });
         }
 
+        // 🛡️ Hash รหัสผ่านก่อนเซฟลง DB
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -56,34 +62,42 @@ export const register = async (req, res) => {
         res.status(500).json({ success: false, message: `Server Error : ${error.message}` });
     }
 };
-// 🚪 3. ระบบ Login (ฉบับสมบูรณ์)
+// 🚪 3. ระบบ Login (สร้างเซสชั่นและคุกกี้)
+// รับค่า: identifier (email หรือ username), password
+// ทำงาน: ตรวจสอบบัญชี -> เช็คสถานะ (แบนไหม?) -> เช็ครหัสผ่าน -> สร้าง Token -> เซฟลง Redis -> ส่ง Cookie
 export const login = async (req, res) => {
     try {
         const { identifier, password } = req.body;
+        // หา User โดยใช้ Email หรือ Username ก็ได้
         const user = await User.findOne({
             $or: [{ email: identifier }, { username: identifier }]
-        }).select('+password');
+        }).select('+password'); // ต้องดึง password ออกมาตรวจสอบด้วย
 
         if (!user) return res.status(404).json({ success: false, message: "ไม่พบบัญชีผู้ใช้งาน" });
 
+        // ตรวจสอบว่าโดนแบนอยู่หรือเปล่า
         if (user.accountStatus === "suspended" || user.accountStatus === "banned") {
             return res.status(403).json({ success: false, message: "บัญชีของคุณถูกระงับ" });
         }
 
+        // ตรวจสอบรหัสผ่าน
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ success: false, message: "รหัสผ่านไม่ถูกต้อง" });
 
+        // บันทึกเวลาที่ล็อกอินล่าสุด
         user.lastLogin = Date.now();
         await user.save();
 
+        // สร้าง Token คู่
         const { accessToken, refreshToken } = generateToken(user);
+        // เซฟ RefreshToken ลง Redis เพื่อเอาไว้ตรวจสอบตอนต่ออายุ (Security measure)
         await redis.set(`session:${user._id}`, refreshToken, "EX", 604800);
 
-        // ✅ ตั้งค่า Cookie ให้ฝั่ง Frontend (localhost) มองเห็น
+        // 🍪 ตั้งค่า Cookie สำหรับ Browser
         const cookieOptions = {
-            httpOnly: true,
-            secure: false, // ต้องเป็น false สำหรับ http://localhost
-            sameSite: "lax", // ต้องเป็น lax เพื่อให้ส่งข้ามพอร์ต 5173 -> 5000
+            httpOnly: true, // ป้องกัน XSS (JS อ่านคุกกี้นี้ไม่ได้)
+            secure: false, // พัฒนาบน localhost ใช้ false (ถ้าขึ้น Production/HTTPS ต้องเป็น true)
+            sameSite: "lax", // ยอมรับการส่งข้ามพอร์ตในเครื่องเดียวกัน
         };
 
         res.cookie("accessToken", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
@@ -109,28 +123,29 @@ export const getMe = async (req, res) => {
     }
 };
 
-// 🚪 5. ระบบออกจากระบบ
+// 🚪 5. ระบบออกจากระบบ (Logout)
+// ทำงาน: ลบเซสชั่นใน Redis -> ลบคุกกี้ในเบราว์เซอร์
 export const logout = async (req, res) => {
     try {
         const accessToken = req.cookies.accessToken;
         const refreshToken = req.cookies.refreshToken;
 
-        // 🛡️ ล้างข้อมูลใน Redis (ถ้ามี Token)
+        // 🛡️ Blacklist AccessToken ชั่วคราว (ถ้ามี)
         if (accessToken) {
             await redis.set(`blacklist:${accessToken}`, "true", "EX", 900);
         }
 
-        // ดึง userId จาก token โดยตรงเพื่อความชัวร์ (กรณี protectRoute ไม่ทำงาน)
+        // ลบ RefreshToken ใน Redis ออก เพื่อให้ Token นี้ใช้ต่อไม่ได้อีก
         if (refreshToken) {
             try {
                 const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_TOKEN);
                 await redis.del(`session:${decoded.id}`);
             } catch (err) {
-                // ถ้า token เน่าก็ข้ามไป
+                // ถ้า token หมดอายุไปแล้วก็ไม่เป็นไร
             }
         }
 
-        // ✅ สั่งลบ Cookie ใน Browser ทันที (ต้องใส่ options ให้เหมือนตอนสร้าง)
+        // 🧹 ลบ Cookie ทั้งหมดออก
         const clearOptions = { httpOnly: true, secure: false, sameSite: "lax" };
         res.clearCookie("accessToken", clearOptions);
         res.clearCookie("refreshToken", clearOptions);

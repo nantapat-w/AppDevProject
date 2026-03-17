@@ -1,26 +1,27 @@
 import Community from "../models/Community.model.js";
 import Notification from "../models/Notification.model.js";
 
-// 📢 1. สร้างโพสต์ใหม่
+// 📢 1. สร้างโพสต์ใหม่ (Create Post)
+// รับค่า: content (ข้อความ), postType (ประเภท), images (ไฟล์จาก Multer), referencedProduct (ID สินค้า), tags
+// ทำงาน: ดึง URL รูปจาก Cloudinary -> เซฟลง Community Model
 export const createPost = async (req, res) => {
     try {
-        const { content, postType, referencedProduct, tags } = req.body;//ลบ imageออกเพื่อให้backend รับรูปโดยตรง
+        const { content, postType, referencedProduct, tags } = req.body;
 
-        // ดึง URL รูปภาพจาก Cloudinary ที่ Multer จัดการให้
+        // ดึง URL รูปภาพจาก Cloudinary ที่ Multer จัดการให้ (ส่งมาหลายรูปได้)
         let imageUrls = [];
         if (req.files) {
             imageUrls = req.files.map(file => file.path);
         }
 
         const newPost = await Community.create({
-            author: req.user._id,
+            author: req.user._id, // เจ้าของโพสต์
             content,
             images: imageUrls,
             postType: postType || "GENERAL",
             referencedProduct: referencedProduct ? JSON.parse(referencedProduct) : null,
             tags: tags ? JSON.parse(tags) : []
         });
-
 
         res.status(201).json({ success: true, message: "สร้างโพสต์สำเร็จ", data: newPost });
     } catch (error) {
@@ -29,23 +30,25 @@ export const createPost = async (req, res) => {
     }
 };
 
-// 🌐 2. ดึงโพสต์ทั้งหมดมาโชว์หน้า Feed
+// 🌐 2. ดึงโพสต์ทั้งหมดมาโชว์หน้า Feed (Get All Posts)
+// รับค่า (Query): postType (ประเภทโพสต์), search (คำค้นหา)
+// ทำงาน: กรองโพสต์ที่ยังไม่ถูกลบ -> Populate ข้อมูลผู้ใช้/สินค้าอ้างอิง -> เรียงจากล่าสุด
 export const getAllPosts = async (req, res) => {
     try {
         const { postType, search } = req.query;
-        let query = { status: { $ne: "DELETED" } }; // ดึงมาหมดที่ไม่ใช่โดนลบไปแล้ว
+        let query = { status: { $ne: "DELETED" } }; // ดึงมาหมดยกเว้นที่โดนลบ (Soft delete)
 
         if (postType) query.postType = postType;
-        if (search) query.content = { $regex: search, $options: "i" };
+        if (search) query.content = { $regex: search, $options: "i" }; // ค้นหาข้อความแบบ Case-insensitive
 
         const posts = await Community.find(query)
-            .populate("author", "username imageProfile")
-            .populate("referencedProduct", "productName price images")
+            .populate("author", "username imageProfile") // ดึงชื่อและรูปคนโพสต์
+            .populate("referencedProduct", "productName price images") // ดึงข้อมูลสินค้าที่ถูกแท็ก
             .populate({
                 path: "comments.user",
                 select: "username imageProfile"
             })
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 }); // ล่าสุดขึ้นก่อน
 
         res.status(200).json({ success: true, count: posts.length, data: posts });
     } catch (error) {
@@ -118,7 +121,8 @@ export const updatePost = async (req, res) => {
     }
 };
 
-// ❤️ 5. กดไลค์ / เลิกไลค์
+// ❤️ 5. กดไลค์ / เลิกไลค์ (Like Post)
+// ทำงาน: เช็คว่าเคยไลค์หรือยัง ถ้ายังให้ Push เข้าอาเรย์ ถ้าเคยแล้วให้ Pull ออก
 export const likePost = async (req, res) => {
     try {
         const post = await Community.findById(req.params.id);
@@ -135,7 +139,7 @@ export const likePost = async (req, res) => {
 
         await post.save();
 
-        // 🔔 สร้างแจ้งเตือนถ้าคนกดไลค์ไม่ใช่เจ้าของโพสต์
+        // 🔔 สร้างแจ้งเตือนไปหาเจ้าของโพสต์ (ยกเว้นกดไลค์โพสต์ตัวเอง)
         if (!isLiked && post.author.toString() !== req.user._id.toString()) {
             await Notification.create({
                 receiver: post.author,

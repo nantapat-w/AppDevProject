@@ -12,6 +12,7 @@ const orderSchema = new mongoose.Schema({
         ref: "User",
         required: true
     },
+    // 📦 รายการสินค้าที่ซื้อ
     items: [{
         productId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -24,6 +25,7 @@ const orderSchema = new mongoose.Schema({
         price: Number,
         image: String
     }],
+    // 🚚 ที่อยู่จัดส่ง
     shippingAddress: {
         fullName: String,
         phoneNumber: String,
@@ -43,7 +45,7 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED"],
+        enum: ["PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED"], // รอชำระ, จ่ายแล้ว, ส่งแล้ว, ได้รับแล้ว, ยกเลิก
         default: "PAID"
     },
     discountCode: {

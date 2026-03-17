@@ -10,50 +10,59 @@ const CreateShop = () => {
   // 1. State สำหรับเก็บข้อมูล Text และไฟล์รูป
   const [shopName, setShopName] = useState('');
   const [shopDescription, setShopDescription] = useState('');
-  const [imageFile, setImageFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [imageFile, setImageFile] = useState(null); // ไฟล์โลโก้ร้านของจริงที่จะส่งไป Backend
+  const [previewUrl, setPreviewUrl] = useState(null); // URL จำลองไว้โชว์รูปให้ User ดูก่อนกดบันทึก
 
-  // ฟังก์ชันจัดการการเลือกรูปภาพ
+  // ─────────────────────────────────────────────────────────────────
+  // 📷 ฟังก์ชัน: จัดการการเลือกรูปภาพ (เมื่อ User คลิกอัปโหลดรูป)
+  // ─────────────────────────────────────────────────────────────────
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file);
-      setPreviewUrl(URL.createObjectURL(file)); // สร้าง URL จำลองเพื่อโชว์รูป Preview
+      setImageFile(file); // เซฟ object file แท้ๆ ไว้เตรียมส่ง
+      setPreviewUrl(URL.createObjectURL(file)); // สร้าง URL จำลองชั่วคราวเพื่อโชว์รูป Preview ทันที
     }
   };
 
-  // 2. ฟังก์ชัน Submit ข้อมูล
+  // ─────────────────────────────────────────────────────────────────
+  // 🚀 ฟังก์ชัน: ทำการส่งข้อมูลทั้งหมดไปบันทึก (Submit ข้อมูล)
+  // ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // ป้องกันไม่ให้หน้าเว็บ Refresh เมื่อกดปุ่ม Submit
     setLoading(true);
 
     try {
       // 🌟 หัวใจสำคัญ: ใช้ FormData เพื่อส่งไฟล์
+      // เพราะถ้าส่งเป็น JSON ปกติ {shopName: "abc"} มันจะส่ง "ไฟล์รูป" ไปด้วยไม่ได้!
       const formData = new FormData();
       formData.append('shopName', shopName);
       formData.append('shopDescription', shopDescription);
       
       if (imageFile) {
-        // "shopLogo" ต้องสะกดตรงกับ uploadCloud.single("shopLogo") ใน Backend
+        // ⚠️ ชื่อ 'shopLogo' ต้องสะกดตรงกับ uploadCloud.single("shopLogo") ที่เขียนไว้ใน Router ของ Backend
         formData.append('shopLogo', imageFile);
       }
 
+      // 🔗 ไปที่ Backend: POST /api/shops/
+      // 🛠️ Controller: createShop ใน shop.controller.js
+      // 📤 ส่ง formData ทั้งยวง พร้อมแนบ cookies (withCredentials: true) เข้าด่าน protectRoute
       const response = await axios.post('http://localhost:5000/api/shops', formData, {
-        withCredentials: true, // ส่ง Cookie/Token ไปเพื่อผ่าน protectRoute
+        withCredentials: true, // ส่ง Cookie/Token ไปเพื่อผ่าน protectRoute และเอา req.user._id มาใช้
         headers: {
-          'Content-Type': 'multipart/form-data', // บอก Backend ว่ามีไฟล์แนบมานะ
+          'Content-Type': 'multipart/form-data', // บอก Backend ว่ามีไฟล์แนบมาด้วยนะ
         },
       });
 
+      // ถ้าระบบ Backend สร้างสำเร็จและตอบ success กลับมา
       if (response.data.success) {
         alert('เปิดร้านค้าสำเร็จ!');
-        navigate('/shops'); // ไปหน้าดูร้านค้าทั้งหมด
+        navigate('/shops'); // เด้งผู้ใช้ไปหน้าดูร้านค้าทั้งหมด
       }
     } catch (error) {
       console.error(error);
       alert(error.response?.data?.message || 'เกิดข้อผิดพลาดในการสร้างร้านค้า');
     } finally {
-      setLoading(false);
+      setLoading(false); // ปิดปุ่มโหลด
     }
   };
 

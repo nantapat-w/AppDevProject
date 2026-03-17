@@ -17,14 +17,10 @@ const Profile = () => {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // ดึงข้อมูลตัวเองจาก LocalStorage ไว้เทียบว่าใช่โปรไฟล์เราไหม
-  let currentUser = null;
-  try {
-    const userStr = localStorage.getItem('user');
-    if (userStr && userStr !== "undefined") currentUser = JSON.parse(userStr);
-  } catch (error) {
-    console.error("Local storage error:", error);
-  }
+  // 👤 ส่วนดึงข้อมูลโปรไฟล์: เป็นหัวใจหลักของหน้านี้
+  // รองรับ 2 โหมด: 
+  // 1. ดูของตัวเอง (myId จาก LocalStorage) 
+  // 2. ดูของคนอื่น (id จาก URL params)
   const myId = currentUser?._id || currentUser?.id;
 
   // --- ส่วนที่ 1: ดึงข้อมูลโปรไฟล์ (รันครั้งเดียวเมื่อเข้าหน้า หรือเปลี่ยน ID) ---
@@ -35,12 +31,14 @@ const Profile = () => {
       return;
     }
 
+    // 👤 ดึงข้อมูลโปรไฟล์ (ใช้ ID จาก URL หรือ ID ของเราเอง)
     const fetchProfile = async () => {
-      setLoading(true); // ตัวนี้คุม Loading ทั้งหน้า (เฉพาะตอนเข้าหน้าแรก)
+      setLoading(true); 
       try {
         const res = await axiosInstance.get(`http://localhost:5000/api/auth/profile/${targetId}`);
         if (res.data.success) {
           setProfileData(res.data.data);
+          // เช็คว่าเราติดตามเขาอยู่หรือเปล่า
           setIsFollowing(res.data.data.followers?.some(f => String(f._id || f) === String(myId)));
         }
       } catch (error) {
@@ -87,16 +85,17 @@ const Profile = () => {
   const isMe = String(profileData?._id) === String(myId);
 
   // 🟢 ฟังก์ชันกดติดตาม (ในหน้า Profile)
+  // 🤝 ฟังก์ชันกดติดตาม / เลิกติดตาม
   const handleFollowToggle = async () => {
     if (!currentUser) return navigate('/login');
     try {
       const res = await axiosInstance.put(`/auth/follow/${profileData._id}`);
       if (res.data.success) {
         setIsFollowing(res.data.isFollowing);
-        // อัปเดตตัวเลขผู้ติดตามแบบ Real-time บนหน้าจอ
+        // อัปเดตตัวเลขผู้ติดตามบน UI ทันทีแบบไม่ต้องรีโหลดหน้า
         setProfileData(prev => {
           const newFollowers = res.data.isFollowing
-            ? [...(prev.followers || []), { _id: myId, username: currentUser.username }] // Fake populate
+            ? [...(prev.followers || []), { _id: myId, username: currentUser.username }] 
             : (prev.followers || []).filter(follower => String(follower._id || follower) !== String(myId));
           return { ...prev, followers: newFollowers };
         });

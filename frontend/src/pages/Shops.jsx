@@ -14,6 +14,7 @@ const Shops = () => {
   const currentUser = JSON.parse(localStorage.getItem('user'));
   const isAdmin = currentUser?.role === 'admin';
 
+  // 🗑️ ฟังก์ชันสำหรับ Admin เพื่อลบร้านค้า (ลบแล้วสินค้าในร้านจะหายไปด้วย)
   const handleAdminDeleteShop = async (e, shopId, shopName) => {
     e.preventDefault();
     e.stopPropagation();
@@ -26,6 +27,7 @@ const Shops = () => {
     }
   };
 
+  // 📦 ดึงรายชื่อร้านค้าทั้งหมด และร้านค้าของตัวเอง (ถ้ามี)
   useEffect(() => {
     const fetchShops = async () => {
       try {
@@ -34,7 +36,7 @@ const Shops = () => {
           setShops(response.data.data);
         }
 
-        // ดึงข้อมูลร้านของตัวเองถ้าล็อกอินอยู่
+        // ดึงข้อมูลร้านของตัวเองถ้าล็อกอินอยู่ (เพื่อแสดงปุ่ม "จัดการร้านค้า")
         if (currentUser) {
           const myShopRes = await axios.get('http://localhost:5000/api/shops/my-shop', { withCredentials: true });
           if (myShopRes.data.success && myShopRes.data.hasShop) {

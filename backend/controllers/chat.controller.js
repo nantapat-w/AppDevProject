@@ -1,35 +1,37 @@
 import Chat from "../models/Chat.model.js";
 
-// 📨 1. ส่งข้อความ
+// 📨 1. ส่งข้อความ (Send Message)
+// รับค่า: receiverId (ID ผู้รับ), content (ข้อความ), chatType (ประเภทแชท)
+// ทำงาน: หาห้องแชทเดิม (ถ้ามี) ถ้าไม่มีให้สร้างใหม่ -> เพิ่มข้อความลงใน Array -> อัปเดตข้อความล่าสุด
 export const sendMessage = async (req, res) => {
     try {
         const { receiverId, content, chatType = "GENERAL" } = req.body;
-        // 🟢 เช็คทั้ง id และ _id เพื่อความชัวร์
+        // ดึง Sender ID จาก Middleware (req.user)
         const senderId = req.user.id || req.user._id; 
 
         if (!receiverId || !content) {
             return res.status(400).json({ success: false, message: "กรุณาระบุผู้รับและข้อความ" });
         }
 
-        // หาห้องแชท
+        // ค้นหาห้องแชทที่มีผู้ร่วม (participants) เป็นเรากับเขา และประเภทแชทตรงกัน
         let chat = await Chat.findOne({
             participants: { $all: [senderId, receiverId] },
             chatType: chatType 
         });
 
-        // ถ้าไม่มีให้สร้างใหม่
+        // ถ้ายังไม่เคยคุยกันมาก่อน ให้สร้างห้องแชทใหม่
         if (!chat) {
             chat = await Chat.create({
                 participants: [senderId, receiverId],
                 chatType: chatType,
-                messages: [] // เริ่มต้นด้วยอาเรย์ว่าง
+                messages: [] 
             });
         }
 
-        // เพิ่มข้อความใหม่
+        // สร้าง Object ข้อความใหม่
         const newMessage = { sender: senderId, content };
         chat.messages.push(newMessage);
-        chat.lastMessage = content;
+        chat.lastMessage = content; // เก็บเอาไว้โชว์ในหน้าพรีวิวแชท
         chat.lastMessageBy = senderId;
 
         await chat.save();

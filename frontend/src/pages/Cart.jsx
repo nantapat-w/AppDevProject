@@ -7,29 +7,35 @@ const Cart = () => {
     const navigate = useNavigate();
     const [cartItems, setCartItems] = useState([]);
 
+    // 🛒 ดึงข้อมูลสินค้าจากตะกร้าใน LocalStorage มาแสดงเมื่อเข้าหน้าเว็บ
+    // ระบบตะกร้าของเราใช้ LocalStorage เป็นหลัก (Client-side Persistence) 
+    // เพื่อให้หยิบของใส่ตะกร้าได้ก่อนที่จะล็อคอินหรือชำระเงินจริง
     useEffect(() => {
         const savedCart = JSON.parse(localStorage.getItem('cart') || '[]');
         setCartItems(savedCart);
     }, []);
 
+    // ➕/➖ ปรับเพิ่ม-ลดจำนวนสินค้าในตะกร้า
     const updateQuantity = (id, delta) => {
         const updatedCart = cartItems.map(item => {
             if (item._id === id) {
-                const newQty = Math.max(1, item.quantity + delta);
+                const newQty = Math.max(1, item.quantity + delta); // ขั้นต่ำคือ 1 เสมอ
                 return { ...item, quantity: newQty };
             }
             return item;
         });
         setCartItems(updatedCart);
-        localStorage.setItem('cart', JSON.stringify(updatedCart));
+        localStorage.setItem('cart', JSON.stringify(updatedCart)); // เซฟลงเครื่องด้วย
     };
 
+    // 🗑️ ลบสินค้าออกจากตะกร้า
     const removeItem = (id) => {
         const updatedCart = cartItems.filter(item => item._id !== id);
         setCartItems(updatedCart);
         localStorage.setItem('cart', JSON.stringify(updatedCart));
     };
 
+    // 💰 คำนวณราคาสินค้าทั้งหมด (ราคารายชิ้น * จำนวน)
     const calculateTotal = () => {
         return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
     };

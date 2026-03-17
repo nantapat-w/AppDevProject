@@ -18,12 +18,16 @@ const EditProduct = () => {
     tradeType: 'BOTH',
   });
 
+  // 📥 ดึงข้อมูลสินค้าเดิมมาใส่ใน Form เมื่อเปิดหน้าแก้ไข
   useEffect(() => {
     const fetchProduct = async () => {
       try {
+        setLoading(true);
+        // 📡 ดึงข้อมูลสินค้าเดิมมาใส่ในฟอร์ม
         const res = await axios.get(`http://localhost:5000/api/products/${id}`);
         if (res.data.success) {
           const product = res.data.data;
+          // กระจายข้อมูลเดิมลง State เพื่อให้ User แก้ไขต่อได้
           setProductForm({
             productName: product.productName,
             productDescription: product.productDescription,
@@ -32,6 +36,7 @@ const EditProduct = () => {
             condition: product.condition,
             tradeType: product.tradeType,
           });
+          // แสดงรูปเดิมเป็นพื้นหลังก่อน
           if (product.images?.[0]) {
             setImagePreview(product.images[0]);
           }
@@ -54,10 +59,12 @@ const EditProduct = () => {
     }
   };
 
+  // 🚀 ส่งข้อมูลที่แก้ไขแล้วไปยังเซิร์ฟเวอร์
   const handleUpdateProduct = async (e) => {
     e.preventDefault();
     if (!productForm.productName) return alert('กรุณากรอกชื่อสินค้า');
 
+    // 🌟 ใช้ FormData เพราะอาจมีการส่งไฟล์รูปใหม่
     const formData = new FormData();
     formData.append('productName', productForm.productName);
     formData.append('productDescription', productForm.productDescription);
@@ -66,11 +73,13 @@ const EditProduct = () => {
     formData.append('category', productForm.category);
     formData.append('tradeType', productForm.tradeType);
     
+    // ถ้ามีการเลือกไฟล์ใหม่ ให้ส่งไปด้วย (Backend จะจัดการอัปโหลดใหม่)
     if (productFile) {
       formData.append('image', productFile);
     }
 
     try {
+      // 🔗 PUT /api/products/:id
       const res = await axios.put(`http://localhost:5000/api/products/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true
@@ -78,7 +87,7 @@ const EditProduct = () => {
 
       if (res.data.success) {
         alert('🎉 แก้ไขข้อมูลสินค้าเรียบร้อยแล้ว!');
-        navigate(`/product/${id}`);
+        navigate(`/product/${id}`); // วาร์ปกลับไปหน้าดูรายละเอียดสินค้า
       }
     } catch (error) {
       console.error("Update product error:", error.response?.data || error);

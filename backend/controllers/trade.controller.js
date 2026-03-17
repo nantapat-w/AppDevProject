@@ -3,9 +3,9 @@ import Product from "../models/Product.model.js";
 import User from "../models/User.model.js";
 import Notification from "../models/Notification.model.js";
 
-// ==========================================
-// 1. สร้างใบคำขอแลกของ (ยื่นข้อเสนอ)
-// ==========================================
+// 🤝 1. สร้างใบคำขอแลกของ (ยื่นข้อเสนอ)
+// รับค่า: receiveId (ID ผู้รับ), offerItems (ของที่เราให้), requestedItems (ของที่เราอยากได้), message, etc.
+// ทำงาน: ตรวจสอบความถูกต้อง -> สร้าง Trade Record -> ส่งแจ้งเตือน (Notification) ไปยังผู้รับ
 export const createTrade = async (req, res) => {
     try {
         const { 
@@ -15,10 +15,12 @@ export const createTrade = async (req, res) => {
         
         const requestId = req.user._id;
 
+        // ห้ามแลกกับตัวเอง (แอบเหงาเหรอ?)
         if (requestId.toString() === receiveId.toString()) {
             return res.status(400).json({ success: false, message: "ไม่สามารถยื่นข้อเสนอให้ตัวเองได้" });
         }
 
+        // ตั้งค่าวันหมดอายุ (ถ้าไม่ส่งมา ให้ Default เป็น 3 วัน)
         let finalExpiredAt = expiredAt;
         if (!finalExpiredAt) {
             const today = new Date();
@@ -39,13 +41,13 @@ export const createTrade = async (req, res) => {
             expiredAt: finalExpiredAt
         });
 
-        // 🔔 แจ้งเตือนเจ้าของสินค้า
+        // 🔔 แจ้งเตือนเจ้าของสินค้าให้มาดูข้อเสนอ
         await Notification.create({
             receiver: receiveId,
             sender: requestId,
             type: "TRADE_REQUEST",
             message: `${req.user.username} ได้ส่งข้อเสนอขอเทรดสินค้าของคุณ!`,
-            linkId: newTrade._id
+            linkId: newTrade._id // ใส่ Link ID เพื่อให้กดจากแจ้งเตือนแล้วเด้งมาหน้านี้ได้ทันที
         });
 
         res.status(201).json({ success: true, message: "ส่งคำขอแลกเปลี่ยนสำเร็จ!", data: newTrade });
@@ -88,9 +90,8 @@ export const getMyOffers = async (req, res) => {
     }
 };
 
-// ==========================================
-// 4. ตัดสินใจ! ยอมรับ หรือ ปฏิเสธ (Respond to Trade)
-// ==========================================
+// ✅/❌ 4. ตัดสินใจ! ยอมรับ หรือ ปฏิเสธ (Respond to Trade)
+// ทำงาน: อัปเดตสถานะใบเทรด -> ส่งแจ้งเตือนกลับ -> (ถ้าตกลง) อัปเดตสถานะของสินค้าเป็น TRADED
 export const respondToTrade = async (req, res) => {
     try {
         const { status } = req.body; 
@@ -103,6 +104,7 @@ export const respondToTrade = async (req, res) => {
         const trade = await Trade.findById(tradeId);
         if (!trade) return res.status(404).json({ success: false, message: "ไม่พบข้อมูลการแลกเปลี่ยน" });
 
+        // ป้องกันคนอื่นมาแอบกดแทนเจ้าของ
         if (trade.receiveId.toString() !== req.user._id.toString()) {
             return res.status(403).json({ success: false, message: "คุณไม่มีสิทธิ์ตัดสินใจข้อเสนอนี้" });
         }
@@ -110,7 +112,7 @@ export const respondToTrade = async (req, res) => {
         trade.status = status;
         await trade.save();
 
-        // 🔔 แจ้งเตือนกลับไปยังคนขอเทรด
+        // 🔔 แจ้งเตือนกลับไปยังคนขอเทรดว่าผลเป็นยังไง
         await Notification.create({
             receiver: trade.requestId,
             sender: req.user._id,
@@ -119,6 +121,7 @@ export const respondToTrade = async (req, res) => {
             linkId: trade._id
         });
 
+        // ถ้าตกลงแลกกัน ให้ล็อคสินค้าทั้งสองฝั่งไม่ให้คนอื่นมาซื้อ/แลกซ้ำ
         if (status === "ACCEPTED") {
             const allItemIds = [...trade.offerItems, ...trade.requestedItems];
             await Product.updateMany(

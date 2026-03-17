@@ -108,30 +108,37 @@ const PaymentPage = () => {
         }
     };
 
+    // 🎟️ ฟังก์ชัน: ตรวจสอบและนำคูปองส่วนลดมาใช้
     const handleApplyCoupon = async (codeOverride) => {
         const codeToUse = codeOverride || couponCode;
         if (!codeToUse) return;
         setIsValidatingCoupon(true);
         setCouponError('');
         try {
+            // 🔗 POST /api/coupons/validate
+            // ส่ง Code ไปเช็คที่ Backend ว่าใช้งานได้ไหม (สถานะ ACTIVE, ยังไม่หมดอายุ, ยอดขั้นต่ำถึง)
             const res = await axios.post('http://localhost:5000/api/coupons/validate', { code: codeToUse }, { withCredentials: true });
             if (res.data.success) {
                 const coupon = res.data.data;
+                // ตรวจสอบเงื่อนไขยอดสั่งซื้อขั้นต่ำ (Frontend Validation เบื้องต้น)
                 if (totalAmount < coupon.minAmount) {
                     setCouponError(`ยอดสั่งซื้อขั้นต่ำสำหรับคูปองนี้คือ ฿${coupon.minAmount}`);
                     setIsValidatingCoupon(false);
                     return;
                 }
-                setAppliedCoupon(coupon);
+                setAppliedCoupon(coupon); // เก็บข้อมูลคูปองที่ใช้ได้ลง State
                 setCouponCode(coupon.code);
+                
+                // 🧮 คำนวณส่วนลดอิสระ (PERCENTAGE vs FIXED)
                 let discount = 0;
                 if (coupon.discountType === 'percentage') {
                     discount = (totalAmount * coupon.discountValue) / 100;
                 } else {
                     discount = coupon.discountValue;
                 }
+                // อัปเดตยอดรวมสุทธิ (ห้ามติดลบ)
                 setFinalAmount(Math.max(0, totalAmount - discount));
-                setShowCouponModal(false);
+                setShowCouponModal(false); // ปิดหน้าต่างเลือกคูปอง
             }
         } catch (error) {
             setCouponError(error.response?.data?.message || 'ไม่สามารถใช้คูปองนี้ได้');
@@ -183,6 +190,8 @@ const PaymentPage = () => {
         }
     };
 
+    // 💾 ฟังก์ชัน: บันทึกรายการสั่งซื้อลงฐานข้อมูล
+    // จะทำงานหลังจากระบบจำลองการชำระเงินสำเร็จ (Credit Card, PromptPay, หรือ Mobile Banking)
     const saveOrder = async () => {
         try {
             if (!defaultAddress) {
@@ -193,6 +202,7 @@ const PaymentPage = () => {
             const discount = totalAmount - finalAmount;
             const firstItem = items[0];
 
+            // 📦 เตรียม Payload สำหรับสร้าง Order ใหม่
             const orderData = {
                 items: items.map(item => ({
                     productId: item._id,
@@ -211,9 +221,9 @@ const PaymentPage = () => {
                     province: defaultAddress.province,
                     zipCode: defaultAddress.zipCode
                 },
-                totalAmount: finalAmount,
-                originalAmount: totalAmount,
-                discountAmount: discount,
+                totalAmount: finalAmount,      // ราคาสุทธิที่ User จ่ายจริง
+                originalAmount: totalAmount,  // ราคาเต็มก่อนหักคูปอง
+                discountAmount: discount,     // จำนวนเงินที่ได้ลด
                 discountCode: appliedCoupon?.code || "",
                 shopName: firstItem?.ownerId?.username || firstItem?.shopId?.shopName || "Shopify Store",
                 shopId: firstItem?.shopId?._id || firstItem?.shopId,
@@ -223,6 +233,8 @@ const PaymentPage = () => {
             };
 
 
+            // 🔗 POST /api/orders
+            // Backend จะดึงข้อมูล Stock, คำนวณยอดเงินอีกครั้ง และสร้าง Order ลง DB
             const res = await axios.post('http://localhost:5000/api/orders', orderData, { withCredentials: true });
             if (res.data.success) {
                 console.log("Order saved successfully:", res.data.order);
