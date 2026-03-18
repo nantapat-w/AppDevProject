@@ -11,7 +11,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [siteSettings, setSiteSettings] = useState(null);
   const [userData, setUserData] = useState(JSON.parse(localStorage.getItem('user')));
-
+  
   // 🛠️ Helper: จัดการ URL ของรูปภาพ
   // รองรับทั้งแบบ Path ในเครื่อง (/uploads/...) และ URL ตรงจาก Cloudinary (http://...)
   const getImageUrl = (path) => {
