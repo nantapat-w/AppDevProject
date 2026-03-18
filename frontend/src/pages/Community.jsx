@@ -6,13 +6,10 @@ import {
     PackageSearch, Sparkles, PackageOpen, Check, Camera, Video, Trash2,
     MoreHorizontal, Pencil
 } from 'lucide-react';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/logo0.png';
 import Navbar from '../components/Navbar';
-
-// ---------- utils ----------
-const API = 'https://appdevproject2.onrender.com/api';
 
 const POST_TYPE_LABELS = {
     ALL: { label: 'ทั้งหมด', icon: <Sparkles className="w-3.5 h-3.5" /> },
@@ -73,7 +70,7 @@ const Community = () => {
         if (!currentUser) return;
         try {
             const targetId = currentUser.id || currentUser._id;
-            const res = await axios.get(`${API}/auth/profile/${targetId}`, { withCredentials: true });
+            const res = await axiosInstance.get(`/auth/profile/${targetId}`);
             if (res.data.success) {
                 setUserData(res.data.data);
                 // อัปเดต LocalStorage ให้มีข้อมูลรูปภาพล่าสุดเสมอ
@@ -116,10 +113,10 @@ const Community = () => {
             const params = {};
             if (activeFilter !== 'ALL') params.postType = activeFilter; // กรองตามประเภท: รีวิว, ตามหาของ ฯลฯ
             if (searchText.trim()) params.search = searchText.trim(); // ค้นหาด้วยคีย์เวิร์ดหน้าชุมชน
-            
+
             // 🔗 ไปที่ Backend: GET /api/community
             // 🛠️ Controller: getAllPosts จะดึงข้อมูล Author และ Likes/Comments มาให้ด้วย
-            const res = await axios.get(`${API}/community`, { params, withCredentials: true });
+            const res = await axiosInstance.get('/community', { params });
             if (res.data.success) setPosts(res.data.data);
         } catch (err) {
             console.error('fetch posts error', err);
@@ -131,7 +128,7 @@ const Community = () => {
     const fetchFriends = async () => {
         if (!currentUser) return;
         try {
-            const res = await axios.get(`${API}/auth/friends`, { withCredentials: true });
+            const res = await axiosInstance.get('/auth/friends');
             if (res.data.success) {
                 setFriends(res.data.data);
             }
@@ -143,7 +140,7 @@ const Community = () => {
     const fetchNotifications = async () => {
         if (!currentUser) return;
         try {
-            const res = await axios.get(`${API}/notifications`, { withCredentials: true });
+            const res = await axiosInstance.get('/notifications');
             if (res.data.success) {
                 setNotifications(res.data.data);
                 setUnreadCount(res.data.data.filter(n => !n.isRead).length);
@@ -197,7 +194,7 @@ const Community = () => {
         setShowDropdown(false);
         if (!showNotifications && unreadCount > 0) {
             try {
-                await axios.put(`${API}/notifications/mark-read`, {}, { withCredentials: true });
+                await axiosInstance.put('/notifications/mark-read');
                 setUnreadCount(0);
                 setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             } catch (error) {
@@ -211,7 +208,7 @@ const Community = () => {
         if (!currentUser) { navigate('/login'); return; }
         try {
             // 🔗 PUT /api/community/:postId/like
-            const res = await axios.put(`${API}/community/${postId}/like`, {}, { withCredentials: true });
+            const res = await axiosInstance.put(`/community/${postId}/like`);
             if (res.data.success) {
                 // อัปเดตยอดไลก์ใน State ทันทีเพื่อให้ UI เปลี่ยน (Optimistic Update)
                 setPosts(prev => prev.map(p => {
@@ -229,7 +226,7 @@ const Community = () => {
         if (!currentUser) { navigate('/login'); return; }
         try {
             // 🔗 POST /api/community/:postId/comment
-            const res = await axios.post(`${API}/community/${postId}/comment`, { text }, { withCredentials: true });
+            const res = await axiosInstance.post(`/community/${postId}/comment`, { text });
             if (res.data.success) {
                 // อัปเดตรายการคอมเมนต์ในโพสต์นั้นๆ
                 setPosts(prev => prev.map(p => p._id === postId ? { ...p, comments: res.data.data } : p));
@@ -240,7 +237,7 @@ const Community = () => {
     const handleDeleteComment = async (postId, commentId) => {
         if (!window.confirm('ต้องการลบคอมเมนต์นี้ใช่หรือไม่?')) return;
         try {
-            const res = await axios.delete(`${API}/community/${postId}/comment/${commentId}`, { withCredentials: true });
+            const res = await axiosInstance.delete(`/community/${postId}/comment/${commentId}`);
             if (res.data.success) {
                 setPosts(prev => prev.map(p => p._id === postId ? { ...p, comments: res.data.data } : p));
             }
@@ -250,7 +247,7 @@ const Community = () => {
     const handleDeletePost = async (postId) => {
         if (!window.confirm('ต้องการลบโพสต์นี้ใช่หรือไม่?')) return;
         try {
-            const res = await axios.delete(`${API}/community/${postId}`, { withCredentials: true });
+            const res = await axiosInstance.delete(`/community/${postId}`);
             if (res.data.success) {
                 setPosts(prev => prev.filter(p => p._id !== postId));
             }
@@ -264,7 +261,7 @@ const Community = () => {
             const formData = new FormData();
             formData.append('content', editData.content);
             formData.append('postType', editData.postType);
-            
+
             // 🖼️ ส่งรายชื่อ URL รูปเดิมที่ User "ยังเก็บไว้" (ไม่กดกากบาททิ้ง)
             formData.append('keepImages', JSON.stringify(editData.existingImages || []));
 
@@ -275,8 +272,7 @@ const Community = () => {
 
             // 🔗 ไปที่ Backend: PUT /api/community/:postId
             // 🛠️ Controller: updatePost จะทำการอัปโหลดรูปใหม่ขึ้น Cloudinary และรวมกับรูปเดิมที่ยังเก็บอยู่
-            const res = await axios.put(`${API}/community/${postId}`, formData, {
-                withCredentials: true,
+            const res = await axiosInstance.put(`/community/${postId}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             if (res.data.success) {
@@ -353,8 +349,7 @@ const Community = () => {
 
             // 🔗 ไปที่ Backend: POST /api/community
             // 🛠️ Controller: createPost ใน community.controller.js
-            const res = await axios.post(`${API}/community`, formData, {
-                withCredentials: true,
+            const res = await axiosInstance.post('/community', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
@@ -375,7 +370,7 @@ const Community = () => {
 
     const handleLogout = async () => {
         try {
-            await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
+            await axiosInstance.post('/auth/logout');
             localStorage.removeItem('user');
             navigate('/login');
         } catch (err) {
@@ -675,7 +670,7 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
         e.stopPropagation();
         const targetId = overrideUserId || post.author._id;
         try {
-            const res = await axios.put(`${API}/auth/follow/${targetId}`, {}, { withCredentials: true });
+            const res = await axiosInstance.put(`/auth/follow/${targetId}`);
             if (res.data.success) { alert(res.data.isFollowing ? '✅ ติดตามแล้ว!' : '❌ เลิกติดตามแล้ว'); }
         } catch (error) { console.error("Follow error:", error); alert("ไม่สามารถติดตามได้"); }
         setShowMenu(false); setShowCommentMenu(null);

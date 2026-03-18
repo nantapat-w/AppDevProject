@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Store, Star, MapPin, Package, ShoppingBag, MessageSquare, Repeat, Clock, ChevronRight } from 'lucide-react';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
 
 const ProductDetail = () => {
   // ดึง :id จาก URL (ID ของสินค้า)
@@ -22,7 +22,7 @@ const ProductDetail = () => {
         // 🔗 ไปที่ Backend: GET /api/products/:id
         // 🛠️ Controller: getProductById ใน product.controller.js
         // 📥 สิ่งที่ได้: ข้อมูลสินค้า + populate ownerId/shopId และได้ shopProductCount (จำนวนสินค้าในร้าน)
-        const res = await axios.get(`https://appdevproject2.onrender.com/api/products/${id}`);
+        const res = await axiosInstance.get('/products/' + id);
         if (res.data.success) {
           setProduct(res.data.data); // เซ็ตข้อมูลสินค้าลง State ตัวแปร
           // จำนวนสินค้าของร้านค้า (ถ้าสินค้านี้ผูกกับร้าน)

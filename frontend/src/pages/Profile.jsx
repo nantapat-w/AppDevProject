@@ -3,7 +3,6 @@ import { ArrowLeft, User, Star, Package, ShieldCheck, MapPin, Settings, Edit3, C
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { axiosInstance } from '../utils/axios';
 import { PostCard, POST_TYPE_LABELS } from './Community';
-import Navbar from '../components/Navbar';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -15,12 +14,15 @@ const Profile = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [userPosts, setUserPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
 
-  // 👤 ส่วนดึงข้อมูลโปรไฟล์: เป็นหัวใจหลักของหน้านี้
-  // รองรับ 2 โหมด: 
-  // 1. ดูของตัวเอง (myId จาก LocalStorage) 
-  // 2. ดูของคนอื่น (id จาก URL params)
+  // ดึงข้อมูลตัวเองจาก LocalStorage ไว้เทียบว่าใช่โปรไฟล์เราไหม
+  let currentUser = null;
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr && userStr !== "undefined") currentUser = JSON.parse(userStr);
+  } catch (error) {
+    console.error("Local storage error:", error);
+  }
   const myId = currentUser?._id || currentUser?.id;
 
   // --- ส่วนที่ 1: ดึงข้อมูลโปรไฟล์ (รันครั้งเดียวเมื่อเข้าหน้า หรือเปลี่ยน ID) ---
@@ -31,15 +33,14 @@ const Profile = () => {
       return;
     }
 
-    // 👤 ดึงข้อมูลโปรไฟล์ (ใช้ ID จาก URL หรือ ID ของเราเอง)
     const fetchProfile = async () => {
-      setLoading(true); 
+      setLoading(true); // ตัวนี้คุม Loading ทั้งหน้า (เฉพาะตอนเข้าหน้าแรก)
       try {
-        const res = await axiosInstance.get(`https://appdevproject2.onrender.com/api/auth/profile/${targetId}`);
+        // ✅ เปลี่ยนมาใช้ axiosInstance ที่รองรับ Render
+        const res = await axiosInstance.get(`/auth/profile/${targetId}`);
         if (res.data.success) {
           setProfileData(res.data.data);
-          // เช็คว่าเราติดตามเขาอยู่หรือเปล่า
-          setIsFollowing(res.data.data.followers?.some(f => String(f._id || f) === String(myId)));
+          setIsFollowing(res.data.data.followers?.includes(myId));
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -64,6 +65,7 @@ const Profile = () => {
         const params = { userId: targetId };
         if (postFilter !== 'ALL') params.postType = postFilter;
 
+        // ✅ เปลี่ยนมาใช้ axiosInstance
         const res = await axiosInstance.get(`/community`, { params });
         if (res.data.success) {
           const filteredPosts = res.data.data.filter(post =>
@@ -85,20 +87,20 @@ const Profile = () => {
   const isMe = String(profileData?._id) === String(myId);
 
   // 🟢 ฟังก์ชันกดติดตาม (ในหน้า Profile)
-  // 🤝 ฟังก์ชันกดติดตาม / เลิกติดตาม
   const handleFollowToggle = async () => {
     if (!currentUser) return navigate('/login');
     try {
+      // ✅ แก้ไขบักการเรียก axios ตรงๆ เป็น axiosInstance
       const res = await axiosInstance.put(`/auth/follow/${profileData._id}`);
       if (res.data.success) {
         setIsFollowing(res.data.isFollowing);
-        // อัปเดตตัวเลขผู้ติดตามบน UI ทันทีแบบไม่ต้องรีโหลดหน้า
-        setProfileData(prev => {
-          const newFollowers = res.data.isFollowing
-            ? [...(prev.followers || []), { _id: myId, username: currentUser.username }] 
-            : (prev.followers || []).filter(follower => String(follower._id || follower) !== String(myId));
-          return { ...prev, followers: newFollowers };
-        });
+        // อัปเดตตัวเลขผู้ติดตามแบบ Real-time บนหน้าจอ
+        setProfileData(prev => ({
+          ...prev,
+          followers: res.data.isFollowing
+            ? [...(prev.followers || []), myId]
+            : (prev.followers || []).filter(followerId => String(followerId) !== String(myId))
+        }));
       }
     } catch (error) {
       console.error("Follow error:", error);
@@ -115,6 +117,7 @@ const Profile = () => {
       }
     });
   };
+
   const handleLikePost = async (postId) => {
     if (!currentUser) return navigate('/login');
     try {
@@ -142,13 +145,7 @@ const Profile = () => {
     <div className="min-h-screen bg-[#05050f] text-white font-sans pb-10">
 
       {/* 1. Navbar */}
-      <Navbar
-        currentUser={currentUser}
-        showDropdown={showDropdown}
-        setShowDropdown={setShowDropdown}
-      />
-
-      <nav className="bg-[#0a0a16] border-b border-[#2a2a3e] px-4 py-3 sticky top-[73px] z-40">
+      <nav className="bg-[#0a0a16] border-b border-[#2a2a3e] px-4 py-3 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-400 hover:text-white transition group">
             <div className="p-2 bg-[#151522] rounded-lg border border-[#2a2a3e] group-hover:border-[#8b2cf5] transition-all">

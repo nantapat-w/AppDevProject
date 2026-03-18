@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
 import { useNavigate } from 'react-router-dom';
 import { Store, Upload, Save, ArrowLeft } from 'lucide-react';
 
@@ -46,10 +46,9 @@ const CreateShop = () => {
       // 🔗 ไปที่ Backend: POST /api/shops/
       // 🛠️ Controller: createShop ใน shop.controller.js
       // 📤 ส่ง formData ทั้งยวง พร้อมแนบ cookies (withCredentials: true) เข้าด่าน protectRoute
-      const response = await axios.post('https://appdevproject2.onrender.com/api/shops', formData, {
-        withCredentials: true, // ส่ง Cookie/Token ไปเพื่อผ่าน protectRoute และเอา req.user._id มาใช้
+      const response = await axiosInstance.post('/shops', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data', // บอก Backend ว่ามีไฟล์แนบมาด้วยนะ
+          'Content-Type': 'multipart/form-data',
         },
       });
 

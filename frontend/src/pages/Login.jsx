@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, User, ArrowRight, Loader2, Repeat, ArrowLeft } from 'lucide-react'; // 🟢 นำเข้า Repeat เพิ่ม
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
 import logo from '../assets/logo0.png';
 
 const Login = () => {
@@ -26,9 +26,7 @@ const Login = () => {
       // ส่ง identifier (เป็นได้ทั้ง Email หรือ Username) + password
       // Backend (auth.controller.js -> login) จะตรวจสอบรหัสผ่าน (bcrypt.compare)
       // และสร้าง JWT Token ฝังลงใน HttpOnly Cookie
-      const response = await axios.post('https://appdevproject2.onrender.com/api/auth/login', formData, {
-        withCredentials: true // ⚠️ สำคัญ: ต้องเป็น true เพื่อให้ Browser ยอมรับและเก็บ JWT Cookie
-      });
+      const response = await axiosInstance.post('/auth/login', formData);
 
       if (response.data.success) {
         // 💾 บันทึกข้อมูลโปรไฟล์พื้นฐาน (ID, Username, Role) ลง LocalStorage 
