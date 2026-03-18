@@ -1,10 +1,8 @@
 import axios from 'axios';
 
-// เลือกใช้ URL จาก .env ถ้าไม่มีให้ใช้ localhost
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
+// 🟢 ชี้ไปที่ '/api' เพื่อใช้โดเมนเดียวกับหน้าเว็บ (1 Web Service)
 export const axiosInstance = axios.create({
-    baseURL: BASE_URL,
+    baseURL: '/api', 
     withCredentials: true,
 });
 
@@ -40,8 +38,8 @@ axiosInstance.interceptors.response.use(
             originalRequest._retry = true;
             isRefreshing = true;
             try {
-                // ใช้ BASE_URL แทน localhost
-                await axios.post(`${BASE_URL}/auth/refresh-token`, {}, {
+                // 🟢 เปลี่ยนมาใช้ '/api' ตรงนี้ด้วย จะได้ไม่บั๊ก
+                await axios.post(`/api/auth/refresh-token`, {}, {
                     withCredentials: true,
                 });
                 processQueue(null);

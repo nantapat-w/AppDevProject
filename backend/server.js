@@ -94,8 +94,22 @@ app.get('/api/get-banner-file', (req, res) => {
 });
 // =================================================================
 
+// =================================================================
+// 🌟 รวมร่าง Frontend และ Backend 
+// =================================================================
+const __dirname = path.resolve();
 
-// 🚀 สตาร์ทเซิร์ฟเวอร์ และต่อ Database
+// 1. บอก Express ว่า "ถ้าหาไฟล์รูปภาพ, JS, CSS ให้ไปหาในโฟลเดอร์ dist ของ frontend นะ"
+app.use(express.static(path.join(__dirname, "../frontend/dist"))); 
+
+// 2. ถ้าผู้ใช้พิมพ์ URL เข้ามา (เช่น /login, /profile) แล้วไม่ใช่ /api
+// ให้โยนไฟล์หน้าเว็บ React (index.html) ไปให้เบราว์เซอร์จัดการต่อ
+app.get(/.*/, (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend/dist", "index.html"));
+});
+// =================================================================
+
+// 🚀 สตาร์ทเซิร์ฟเวอร์ (ของเดิมของคุณ)
 app.listen(PORT, async () => {
     await connectDB();
     await initializeSettings();
