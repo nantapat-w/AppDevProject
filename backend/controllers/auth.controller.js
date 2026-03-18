@@ -95,9 +95,9 @@ export const login = async (req, res) => {
 
         // 🍪 ตั้งค่า Cookie สำหรับ Browser
         const cookieOptions = {
-            httpOnly: true, // ป้องกัน XSS (JS อ่านคุกกี้นี้ไม่ได้)
-            secure: false, // พัฒนาบน localhost ใช้ false (ถ้าขึ้น Production/HTTPS ต้องเป็น true)
-            sameSite: "lax", // ยอมรับการส่งข้ามพอร์ตในเครื่องเดียวกัน
+            httpOnly: true,
+            secure: true, // 🟢 เปลี่ยนเป็น true เพื่อให้ใช้บน Render ได้
+            sameSite: "none", // 🟢 เปลี่ยนเป็น none เพื่ออนุญาตให้ส่งข้ามโดเมนได้
         };
 
         res.cookie("accessToken", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
@@ -146,7 +146,7 @@ export const logout = async (req, res) => {
         }
 
         // 🧹 ลบ Cookie ทั้งหมดออก
-        const clearOptions = { httpOnly: true, secure: false, sameSite: "lax" };
+        const clearOptions = { httpOnly: true, secure: true, sameSite: "none" };
         res.clearCookie("accessToken", clearOptions);
         res.clearCookie("refreshToken", clearOptions);
 
@@ -180,8 +180,8 @@ export const refreshToken = async (req, res) => {
         // ✅ Set accessToken cookie ใหม่ให้ browser
         const cookieOptions = {
             httpOnly: true,
-            secure: false,
-            sameSite: "lax",
+            secure: true, // 🟢 เปลี่ยนตรงนี้
+            sameSite: "none", // 🟢 เปลี่ยนตรงนี้
             maxAge: 15 * 60 * 1000, // 15 นาที
         };
         res.cookie("accessToken", tokens.accessToken, cookieOptions);
@@ -405,7 +405,7 @@ export const deleteAccount = async (req, res) => {
         }
 
         // ล้าง Cookie
-        const clearOptions = { httpOnly: true, secure: false, sameSite: "lax" };
+        const clearOptions = { httpOnly: true, secure: true, sameSite: "none" };
         res.clearCookie("accessToken", clearOptions);
         res.clearCookie("refreshToken", clearOptions);
 
