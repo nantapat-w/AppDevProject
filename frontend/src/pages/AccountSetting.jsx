@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import logo from '../assets/logo0.png';
-import axios from 'axios';
 import Navbar from '../components/Navbar';
 
 const AccountSetting = () => {
@@ -60,7 +59,7 @@ const AccountSetting = () => {
   const fetchAddresses = async () => {
     try {
       setLoading(true);
-      const res = await axiosInstance.get('/account-settings/addresses', { withCredentials: true });
+      const res = await axiosInstance.get('/account-settings/addresses');
       if (res.data.success) {
         setAddresses(res.data.addresses);
       }
@@ -105,7 +104,7 @@ const AccountSetting = () => {
     if (!window.confirm('คุณต้องการลบที่อยู่นี้ใช่หรือไม่?')) return;
     try {
       setLoading(true);
-      const res = await axiosInstance.delete(`/account-settings/addresses/${id}`, { withCredentials: true });
+      const res = await axiosInstance.delete(`/account-settings/addresses/${id}`);
       if (res.data.success) {
         setAddresses(res.data.addresses);
       }
@@ -118,7 +117,7 @@ const AccountSetting = () => {
 
   const handleSetDefault = async (id) => {
     try {
-      const res = await axiosInstance.patch(`/account-settings/addresses/${id}/default`, {}, { withCredentials: true });
+      const res = await axiosInstance.patch(`/account-settings/addresses/${id}/default`);
       if (res.data.success) {
         setAddresses(res.data.addresses);
       }
@@ -215,17 +214,16 @@ const AccountSetting = () => {
       setUploadingImage(true);
       const formData = new FormData();
       formData.append('imageProfile', file);
-      
+
       // 🚀 2. ยิง API อัปโหลดรูปไปที่ Cloudinary (ผ่าน Backend)
       const res = await axiosInstance.put('/auth/profile', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        withCredentials: true,
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       if (res.data.success) {
         const newUrl = res.data.data?.imageProfile;
         if (newUrl) setUser(prev => ({ ...prev, imageProfile: newUrl }));
-        
+
         // 💾 3. อัปเดตข้อมูลใน LocalStorage เพื่อให้ Navbar และส่วนอื่นๆ เปลี่ยนตามทันที
         const stored = localStorage.getItem('user');
         if (stored && stored !== 'undefined') {
@@ -253,8 +251,6 @@ const AccountSetting = () => {
         gender: user.gender,
         birthday: user.birthday,
         bio: user.bio
-      }, {
-        withCredentials: true,
       });
       if (res.data.success) {
         setProfileMsg({ type: 'success', text: '✅ บันทึกข้อมูลสำเร็จ!' });
@@ -312,8 +308,7 @@ const AccountSetting = () => {
 
       // 🔐 ขั้นตอนที่ 1: ตรวจสอบรหัสผ่านก่อนเพื่อความปลอดภัย
       const verifyRes = await axiosInstance.delete('/auth/account', {
-        data: { password: deletePassword, verifyOnly: true },
-        withCredentials: true
+        data: { password: deletePassword, verifyOnly: true }
       });
 
       if (!verifyRes.data.success) {
@@ -346,14 +341,14 @@ const AccountSetting = () => {
       setProfileMsg({ type: 'error', text: `❌ ลบบัญชีไม่สำเร็จ: ${errorMsg}` });
     } finally {
       setIsDeleting(false);
-      setDeletePassword(''); 
+      setDeletePassword('');
       setTimeout(() => setProfileMsg(null), 5000);
     }
   };
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:5000/api/auth/logout', {}, { withCredentials: true });
+      await axiosInstance.post('/auth/logout');
       localStorage.removeItem('user');
       navigate('/login');
     } catch (error) {
@@ -777,15 +772,15 @@ const AccountSetting = () => {
                           </div>
                         </div>
                         <div className="flex gap-4 flex-shrink-0 relative z-[100]">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleEdit(addr); }} 
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleEdit(addr); }}
                             className="p-3 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition rounded-xl border border-blue-500/20 shadow-lg"
                             title="Edit Address"
                           >
                             <Pencil className="w-6 h-6" />
                           </button>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleDeleteAddress(addr._id); }} 
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteAddress(addr._id); }}
                             className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition rounded-xl border border-red-500/20 shadow-lg"
                             title="Delete Address"
                           >
@@ -800,7 +795,7 @@ const AccountSetting = () => {
                     onClick={() => { setIsAdding(true); setEditingAddress(null); setFormData(initialFormState); }}
                     className="w-full py-4 border-2 border-dashed border-[#2a2a3e] rounded-2xl flex items-center justify-center gap-3 text-gray-500 hover:border-[#8b2cf5] hover:text-[#8b2cf5] transition group mt-6"
                   >
-                    <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" /> 
+                    <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
                     <span className="font-bold">เพิ่มที่อยู่ใหม่</span>
                   </button>
                 )}

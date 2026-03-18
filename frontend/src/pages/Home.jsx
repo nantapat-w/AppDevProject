@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ShoppingBag, MessageSquare, Bell, User, Star, Repeat, Users, PackageOpen, LogOut, Store, ClipboardList, Settings, Trash2 } from 'lucide-react';
 import { axiosInstance } from '../utils/axios';
-import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo0.png';
 import Navbar from '../components/Navbar';
@@ -30,7 +29,7 @@ const Home = () => {
     if (!currentUser) return;
     try {
       const targetId = currentUser.id || currentUser._id;
-      const res = await axios.get(`http://localhost:5000/api/auth/profile/${targetId}`, { withCredentials: true });
+      const res = await axiosInstance.get(`/auth/profile/${targetId}`);
       if (res.data.success) {
         setUserData(res.data.data);
         localStorage.setItem('user', JSON.stringify(res.data.data)); // บันทึกลงเครื่องใหม่
@@ -46,7 +45,7 @@ const Home = () => {
     const fetchProducts = async () => {
       try {
         // 🔗 GET /api/products : ดึงรายการสินค้าทั้งหมด (รวม ownerId เพื่อโชว์ชื่อคนขาย)
-        const response = await axios.get('http://localhost:5000/api/products');
+        const response = await axiosInstance.get('/products');
         if (response.data.success) {
           // เรียงลำดับจากวันที่สร้างใหม่ที่สุด (New Arrival)
           const sortedProducts = response.data.data.sort((a, b) => {
@@ -66,7 +65,7 @@ const Home = () => {
     const fetchSiteSettings = async () => {
       try {
         // 🔗 GET /api/settings : ดึงข้อมูลตั้งค่าระบบที่แอดมินแก้ผ่าน Dashboard
-        const response = await axios.get('http://localhost:5000/api/settings');
+        const response = await axiosInstance.get('/settings');
         if (response.data.success) {
           setSiteSettings(response.data.data);
         }

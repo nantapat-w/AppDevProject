@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Store, Star, MapPin, Plus, Package, X, Upload, Image as ImageIcon, Trash2, ShieldCheck, Calendar, Hash, MessageCircle, UserCheck, Clock, Pencil, AlertTriangle } from 'lucide-react';
-import axios from 'axios';
 import { axiosInstance } from '../utils/axios';
 
 const ShopDetail = () => {
@@ -54,7 +53,7 @@ const ShopDetail = () => {
         // 🛠️ Controller: getShopById ใน shop.controller.js
         // 📤 ส่งอะไรไป: ส่ง id ผ่าน URL Params (req.params.id)
         // 📥 ได้อะไรกลับมา: ข้อมูลร้านค้าที่ populate ownerId แล้ว (res.data.data)
-        const shopRes = await axios.get(`http://localhost:5000/api/shops/${id}`);
+        const shopRes = await axiosInstance.get(`/shops/${id}`);
         if (shopRes.data.success || shopRes.data) {
           const shopData = shopRes.data.data || shopRes.data;
           setShop(shopData);
@@ -67,7 +66,7 @@ const ShopDetail = () => {
         // 🛠️ Controller: getProductsByShop ใน product.controller.js
         // 📤 ส่งอะไรไป: ส่ง shopId ผ่าน URL Params (req.params.shopId)
         // 📥 ได้อะไรกลับมา: Array ของสินค้าทั้งหมดในร้านที่มีสถานะ AVAILABLE (res.data.data)
-        const productRes = await axios.get(`http://localhost:5000/api/products/shop/${id}`);
+        const productRes = await axiosInstance.get(`/products/shop/${id}`);
         if (productRes.data.success) {
           setProducts(productRes.data.data);
         }
@@ -120,9 +119,8 @@ const ShopDetail = () => {
       // 🔗 ไปที่ Backend: POST /api/products/
       // 🛠️ Controller: createProduct ใน product.controller.js
       // 📤 ส่ง formData พร้อมแนบ cookies (withCredentials) เพื่อตรวจสอบสิทธิ์การเป็นเจ้าของร้าน
-      const res = await axios.post(`http://localhost:5000/api/products`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        withCredentials: true
+      const res = await axiosInstance.post(`/products`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       if (res.data.success) {
@@ -145,9 +143,7 @@ const ShopDetail = () => {
       // 🛠️ Controller: deleteProduct ใน product.controller.js
       // 📤 ส่งอะไรไป: ส่ง productId ผ่าน URL Params พร้อม cookies (ตรวจสอบ auth และ owner ของสินค้า)
       // 📥 ได้อะไรกลับมา: Message confirm การลบสำเร็จ (res.data.message)
-      const res = await axios.delete(`http://localhost:5000/api/products/${productId}`, {
-        withCredentials: true
-      });
+      const res = await axiosInstance.delete(`/products/${productId}`);
 
       if (res.data.success) {
         setProducts(products.filter(p => p._id !== productId));
@@ -177,9 +173,8 @@ const ShopDetail = () => {
       // 🛠️ Controller: updateShop ใน shop.controller.js
       // 📤 ส่งอะไรไป: formData ที่มี shopName, shopDescription, และ shopLogo (ถ้ามีอัปโหลดใหม่) พร้อม cookies 
       // 📥 ได้อะไรกลับมา: ข้อมูลร้านค้าเวอร์ชันใหม่ที่ถูกอัปเดตแล้ว (res.data.data)
-      const res = await axios.put(`http://localhost:5000/api/shops/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        withCredentials: true
+      const res = await axiosInstance.put(`/shops/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       if (res.data.success) {
@@ -204,9 +199,7 @@ const ShopDetail = () => {
       // 🛠️ Controller: deleteShop ใน shop.controller.js
       // 📤 ส่งอะไรไป: ส่ง shopId ผ่าน URL Params พร้อม cookies ยืนยันสิทธิ์ความเป็นเจ้าของหรือ admin
       // 📥 ได้อะไรกลับมา: Message ยืนยันลบสำเร็จ (res.data.message) และ backend จะลบ products ที่เกี่ยวข้องไปด้วย
-      const res = await axios.delete(`http://localhost:5000/api/shops/${id}`, {
-        withCredentials: true
-      });
+      const res = await axiosInstance.delete(`/shops/${id}`);
 
       if (res.data.success) {
         alert('🗑️ ลบร้านค้าเรียบร้อยแล้ว');

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, ArrowLeft, Store, Star, MapPin, X, Trash2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { axiosInstance } from '../utils/axios';
 
 const Shops = () => {
@@ -31,14 +30,14 @@ const Shops = () => {
   useEffect(() => {
     const fetchShops = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/shops');
+        const response = await axiosInstance.get('/shops');
         if (response.data.success) {
           setShops(response.data.data);
         }
 
         // ดึงข้อมูลร้านของตัวเองถ้าล็อกอินอยู่ (เพื่อแสดงปุ่ม "จัดการร้านค้า")
         if (currentUser) {
-          const myShopRes = await axios.get('http://localhost:5000/api/shops/my-shop', { withCredentials: true });
+          const myShopRes = await axiosInstance.get('/shops/my-shop');
           if (myShopRes.data.success && myShopRes.data.hasShop) {
             setMyShop(myShopRes.data.data);
           }

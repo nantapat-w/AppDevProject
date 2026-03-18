@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
 import { Star, PackageOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 
@@ -24,7 +24,8 @@ const ProductSearch = () => {
   const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    return `http://localhost:5000${path}`;
+    const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
+    return `${baseUrl}${path}`;
   };
 
   useEffect(() => {
@@ -32,7 +33,7 @@ const ProductSearch = () => {
       if (!currentUser) return;
       try {
         const targetId = currentUser.id || currentUser._id;
-        const res = await axios.get(`http://localhost:5000/api/auth/profile/${targetId}`, { withCredentials: true });
+        const res = await axiosInstance.get(`/auth/profile/${targetId}`);
         if (res.data.success) {
           setUserData(res.data.data);
           localStorage.setItem('user', JSON.stringify(res.data.data));
@@ -52,7 +53,7 @@ const ProductSearch = () => {
         // 🔗 GET /api/products
         // เพื่อประสิทธิภาพ สูงสุด ฟีเจอร์นี้จะดึงสินค้าทั้งหมดมาเก็บไว้ใน State ก่อน
         // แล้วค่อยใช้ JavaScript กรอง (Filter) และทำ Pagination ในระดับ Frontend
-        const response = await axios.get('http://localhost:5000/api/products');
+        const response = await axiosInstance.get('/products');
         if (response.data.success) {
           let fetchedProducts = response.data.data;
           // เก็บข้อมูลทั้งหมดไว้ใน AllProducts เพื่อเป็น Master List ในการค้นหา

@@ -6,7 +6,6 @@ import {
     ArrowLeft, ClipboardList, Repeat, Package, Clock,
     MapPin, CreditCard, ChevronRight, ShoppingBag
 } from 'lucide-react';
-import axios from 'axios';
 import logo from '../assets/logo0.png';
 import Navbar from '../components/Navbar';
 
@@ -29,7 +28,7 @@ const OrderHistory = () => {
             setOrdersLoading(true);
             // 🔗 GET /api/orders/my-orders
             // Backend จะใช้ User ID จาก JWT Token ใน Cookie เพื่อดึงข้อมูลเฉพาะของ User คนนั้นๆ
-            const res = await axiosInstance.get('/orders/my-orders', { withCredentials: true });
+            const res = await axiosInstance.get('/orders/my-orders');
             if (res.data.success) {
                 // เก็บรายการคำสั่งซื้อลง State เพื่อวนลูปแสดงผลใน UI
                 setOrders(res.data.orders);
@@ -43,7 +42,7 @@ const OrderHistory = () => {
 
     const handleLogout = async () => {
         try {
-            await axios.post('http://localhost:5000/api/auth/logout', {}, { withCredentials: true });
+            await axiosInstance.post('/auth/logout');
             localStorage.removeItem('user');
             navigate('/login');
         } catch (error) {

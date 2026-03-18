@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, ArrowLeft, User, PackageOpen, Plus, X, MapPin, Truck, Banknote, CheckCircle2, ChevronRight, Clock, Box, ShieldCheck } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../utils/axios';
 
 const Chat = () => {
   const [activeTab, setActiveTab] = useState('GENERAL'); 
@@ -55,7 +55,7 @@ const Chat = () => {
     if (!myId) return;
     const fetchChats = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/chats', { withCredentials: true }); 
+        const res = await axiosInstance.get('/chats', { withCredentials: true }); 
         if (res.data.success) setChats(res.data.data);
       } catch (error) { console.error(error); }
     };
@@ -70,7 +70,7 @@ const Chat = () => {
     if (activeChat && activeChat._id !== 'new_temp_chat' && myId) {
       const fetchMessages = async () => {
         try {
-          const res = await axios.get(`http://localhost:5000/api/chats/${activeChat._id}`, { withCredentials: true });
+          const res = await axiosInstance.get(`/chats/${activeChat._id}`);
           if (res.data.success) setMessages(res.data.data.messages);
         } catch (error) { console.error(error); }
       };
@@ -85,8 +85,8 @@ const Chat = () => {
     if (!myId) return;
     const fetchTrackedTrades = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/trades/outbox', { withCredentials: true });
-        const res2 = await axios.get('http://localhost:5000/api/trades/inbox', { withCredentials: true });
+        const res = await axiosInstance.get('/trades/outbox', { withCredentials: true });
+        const res2 = await axiosInstance.get('/trades/inbox', { withCredentials: true });
         if (res.data.success && res2.data.success) {
            setTrackedTrades([...res.data.data, ...res2.data.data]);
         }
@@ -107,7 +107,7 @@ const Chat = () => {
     const receiver = activeChat.participants.find(p => String(p._id) !== myId) || activeChat.participants[0];
 
     try {
-      const res = await axios.post('http://localhost:5000/api/chats', {
+      const res = await axiosInstance.post('/chats', {
         receiverId: receiver._id,
         content: textToSend,
         chatType: isTrade ? 'TRADE' : activeTab
@@ -119,7 +119,7 @@ const Chat = () => {
         
         // ถ้าเป็นการสร้างแชทใหม่ (Temp Chat) ให้รีเฟรชรายชื่อแชทเพื่อให้มี _id จริงๆ
         if (activeChat._id === 'new_temp_chat') {
-            const refreshRes = await axios.get('http://localhost:5000/api/chats', { withCredentials: true }); 
+            const refreshRes = await axiosInstance.get('/chats', { withCredentials: true }); 
             if (refreshRes.data.success) {
                 setChats(refreshRes.data.data);
                 const realChat = refreshRes.data.data.find(c => 
@@ -151,7 +151,7 @@ const Chat = () => {
             // สร้าง Record ใน DB จริงๆ
             // receiver._id คือคนส่งข้อเสนอ (ผู้ยื่น = requestId)
             // myId คือคนที่กด ACCEPT (ผู้รับข้อเสนอ = receiveId)
-            await axios.post('http://localhost:5000/api/trades', {
+            await axiosInstance.post('/trades', {
                 receiveId: myId,          // คนกด Accept = คนรับข้อเสนอ
                 requestId: receiver._id,  // คนส่งข้อเสนอ = ผู้ยื่น
                 message: desc,
@@ -166,7 +166,7 @@ const Chat = () => {
 
   const updateShippingStatus = async () => {
     try {
-        const res = await axios.put('http://localhost:5000/api/trades/shipping', {
+        const res = await axiosInstance.put('/trades/shipping', {
             tradeId: selectedTradeForShipping._id,
             trackingNumber: shippingForm.trackingNumber,
             shippingCompany: shippingForm.shippingCompany
@@ -182,7 +182,7 @@ const Chat = () => {
 
   const completeTradeTransaction = async (tradeId) => {
     try {
-        const res = await axios.put(`http://localhost:5000/api/trades/complete/${tradeId}`, {}, { withCredentials: true });
+        const res = await axiosInstance.put(`/trades/complete/${tradeId}`);
         if (res.data.success) {
             handleSendMessage(`🏁 การเทรดเสร็จสมบูรณ์แล้ว! ได้รับของเรียบร้อย`, true);
         }
