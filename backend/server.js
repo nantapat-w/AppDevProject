@@ -37,6 +37,12 @@ app.use(cors({
     credentials: true // 🟢 ต้องเปิดเป็น true ถึงจะคุยกันรู้เรื่อง
 }));
 app.use(express.json());
+// --- ส่วนดักจับ IP เพื่อนเพื่อเอาไปบล็อก ---
+app.use((req, res, next) => {
+    const friendIP = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+    console.log(`[TARGET_DETECTED] IP: ${friendIP} | Path: ${req.url} | Time: ${new Date().toLocaleString()}`);
+    next();
+});
 app.use(cookieParser());
 
 // 🟢 อนุญาตให้หน้าเว็บดึงรูปภาพจากโฟลเดอร์ uploads ได้
