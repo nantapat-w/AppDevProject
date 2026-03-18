@@ -685,10 +685,10 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
 
     // Combine video and images for gallery
     const mediaItems = [];
-    if (post.video) mediaItems.push({ type: 'video', url: post.video.startsWith('http') ? post.video : `http://localhost:5000${post.video}` });
+    if (post.video) mediaItems.push({ type: 'video', url: post.video.startsWith('http') ? post.video : `https://appdevproject2.onrender.com${post.video}` });
     if (post.images?.length > 0) {
         post.images.forEach(img => {
-            mediaItems.push({ type: 'image', url: img.startsWith('http') ? img : `http://localhost:5000${img}` });
+            mediaItems.push({ type: 'image', url: img.startsWith('http') ? img : `https://appdevproject2.onrender.com${img}` });
         });
     }
 
