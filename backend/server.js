@@ -37,10 +37,23 @@ app.use(cors({
     credentials: true // 🟢 ต้องเปิดเป็น true ถึงจะคุยกันรู้เรื่อง
 }));
 app.use(express.json());
-// --- ส่วนดักจับ IP เพื่อนเพื่อเอาไปบล็อก ---
+// --- ระบบบล็อกผู้ใช้ที่ไม่ได้รับอนุญาต (Blacklist) ---
 app.use((req, res, next) => {
     const friendIP = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
-    console.log(`[TARGET_DETECTED] IP: ${friendIP} | Path: ${req.url} | Time: ${new Date().toLocaleString()}`);
+    
+    // รายชื่อ IP ที่จะบล็อก
+    const blacklist = ['158.108.231.31']; 
+
+    if (blacklist.includes(friendIP)) {
+        console.log(`[SECURITY] บล็อกการเข้าถึงจาก IP: ${friendIP} เรียบร้อย!`);
+        
+        // ส่งสถานะ 403 (Forbidden) พร้อมข้อความสะใจ
+        return res.status(403).json({
+            status: "Blocked",
+            message: "ยิงหน้า login รัวๆ แบบนี้ เหนื่อยไหมไอ้ชาย? เว็บ Shoplify แข็งแกร่งนะจ๊ะ 555",
+            admin_note: "แบนโดยระบบอัตโนมัติ อย่าซ่ากับเจ้าของโปรเจกต์!"
+        });
+    }
     next();
 });
 app.use(cookieParser());
