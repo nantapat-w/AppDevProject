@@ -99,7 +99,7 @@ const PaymentPage = () => {
 
     const fetchAvailableCoupons = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/coupons', { withCredentials: true });
+            const res = await axios.get('https://appdevproject2.onrender.com/api/coupons', { withCredentials: true });
             if (res.data.success) {
                 setAvailableCoupons(res.data.data);
             }
@@ -117,7 +117,7 @@ const PaymentPage = () => {
         try {
             // 🔗 POST /api/coupons/validate
             // ส่ง Code ไปเช็คที่ Backend ว่าใช้งานได้ไหม (สถานะ ACTIVE, ยังไม่หมดอายุ, ยอดขั้นต่ำถึง)
-            const res = await axios.post('http://localhost:5000/api/coupons/validate', { code: codeToUse }, { withCredentials: true });
+            const res = await axios.post('https://appdevproject2.onrender.com/api/coupons/validate', { code: codeToUse }, { withCredentials: true });
             if (res.data.success) {
                 const coupon = res.data.data;
                 // ตรวจสอบเงื่อนไขยอดสั่งซื้อขั้นต่ำ (Frontend Validation เบื้องต้น)
@@ -150,7 +150,7 @@ const PaymentPage = () => {
     const fetchAddresses = async () => {
         try {
             setIsLoadingAddress(true);
-            const res = await axios.get('http://localhost:5000/api/account-settings/addresses', { withCredentials: true });
+            const res = await axios.get('https://appdevproject2.onrender.com/api/account-settings/addresses', { withCredentials: true });
             if (res.data.success) {
                 const filteredAddresses = res.data.addresses.filter(addr => addr.label !== 'SYSTEM_RESERVED');
                 setAddresses(filteredAddresses);
@@ -175,7 +175,7 @@ const PaymentPage = () => {
         e.preventDefault();
         try {
             setIsLoadingAddress(true);
-            const res = await axios.post('http://localhost:5000/api/account-settings/addresses', addressForm, { withCredentials: true });
+            const res = await axios.post('https://appdevproject2.onrender.com/api/account-settings/addresses', addressForm, { withCredentials: true });
             if (res.data.success) {
                 await fetchAddresses();
                 setIsAddingNewAddress(false);
@@ -235,7 +235,7 @@ const PaymentPage = () => {
 
             // 🔗 POST /api/orders
             // Backend จะดึงข้อมูล Stock, คำนวณยอดเงินอีกครั้ง และสร้าง Order ลง DB
-            const res = await axios.post('http://localhost:5000/api/orders', orderData, { withCredentials: true });
+            const res = await axios.post('https://appdevproject2.onrender.com/api/orders', orderData, { withCredentials: true });
             if (res.data.success) {
                 console.log("Order saved successfully:", res.data.order);
                 return true;

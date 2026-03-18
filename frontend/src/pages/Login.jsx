@@ -26,7 +26,7 @@ const Login = () => {
       // ส่ง identifier (เป็นได้ทั้ง Email หรือ Username) + password
       // Backend (auth.controller.js -> login) จะตรวจสอบรหัสผ่าน (bcrypt.compare)
       // และสร้าง JWT Token ฝังลงใน HttpOnly Cookie
-      const response = await axios.post('http://localhost:5000/api/auth/login', formData, {
+      const response = await axios.post('https://appdevproject2.onrender.com/api/auth/login', formData, {
         withCredentials: true // ⚠️ สำคัญ: ต้องเป็น true เพื่อให้ Browser ยอมรับและเก็บ JWT Cookie
       });
 

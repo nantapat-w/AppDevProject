@@ -31,14 +31,14 @@ const Shops = () => {
   useEffect(() => {
     const fetchShops = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/shops');
+        const response = await axios.get('https://appdevproject2.onrender.com/api/shops');
         if (response.data.success) {
           setShops(response.data.data);
         }
 
         // ดึงข้อมูลร้านของตัวเองถ้าล็อกอินอยู่ (เพื่อแสดงปุ่ม "จัดการร้านค้า")
         if (currentUser) {
-          const myShopRes = await axios.get('http://localhost:5000/api/shops/my-shop', { withCredentials: true });
+          const myShopRes = await axios.get('https://appdevproject2.onrender.com/api/shops/my-shop', { withCredentials: true });
           if (myShopRes.data.success && myShopRes.data.hasShop) {
             setMyShop(myShopRes.data.data);
           }

@@ -24,7 +24,7 @@ const EditProduct = () => {
       try {
         setLoading(true);
         // 📡 ดึงข้อมูลสินค้าเดิมมาใส่ในฟอร์ม
-        const res = await axios.get(`http://localhost:5000/api/products/${id}`);
+        const res = await axios.get(`https://appdevproject2.onrender.com/api/products/${id}`);
         if (res.data.success) {
           const product = res.data.data;
           // กระจายข้อมูลเดิมลง State เพื่อให้ User แก้ไขต่อได้
@@ -80,7 +80,7 @@ const EditProduct = () => {
 
     try {
       // 🔗 PUT /api/products/:id
-      const res = await axios.put(`http://localhost:5000/api/products/${id}`, formData, {
+      const res = await axios.put(`https://appdevproject2.onrender.com/api/products/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true
       });

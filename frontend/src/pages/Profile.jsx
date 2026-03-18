@@ -35,7 +35,7 @@ const Profile = () => {
     const fetchProfile = async () => {
       setLoading(true); 
       try {
-        const res = await axiosInstance.get(`http://localhost:5000/api/auth/profile/${targetId}`);
+        const res = await axiosInstance.get(`https://appdevproject2.onrender.com/api/auth/profile/${targetId}`);
         if (res.data.success) {
           setProfileData(res.data.data);
           // เช็คว่าเราติดตามเขาอยู่หรือเปล่า

@@ -26,7 +26,7 @@ const Signup = () => {
       // 🔗 ยิง API Register (Path: /api/auth/register)
       // ส่ง Payload ไปคือ username, email, password
       // Backend จะทำการ hashing password และลงทะเบียน User ใหม่ลง Database
-      const response = await axios.post('http://localhost:5000/api/auth/register', formData);
+      const response = await axios.post('https://appdevproject2.onrender.com/api/auth/register', formData);
 
       if (response.data.success) {
         alert('🎉 ยินดีด้วยเพื่อน! สมัครสมาชิกสำเร็จแล้ว กรุณาเข้าสู่ระบบ');

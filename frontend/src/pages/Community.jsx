@@ -12,7 +12,7 @@ import logo from '../assets/logo0.png';
 import Navbar from '../components/Navbar';
 
 // ---------- utils ----------
-const API = 'http://localhost:5000/api';
+const API = 'https://appdevproject2.onrender.com/api';
 
 const POST_TYPE_LABELS = {
     ALL: { label: 'ทั้งหมด', icon: <Sparkles className="w-3.5 h-3.5" /> },
@@ -690,10 +690,10 @@ function PostCard({ post, currentUser, liked, isFollowing, onLike, onComment, on
 
     // Combine video and images for gallery
     const mediaItems = [];
-    if (post.video) mediaItems.push({ type: 'video', url: post.video.startsWith('http') ? post.video : `http://localhost:5000${post.video}` });
+    if (post.video) mediaItems.push({ type: 'video', url: post.video.startsWith('http') ? post.video : `https://appdevproject2.onrender.com${post.video}` });
     if (post.images?.length > 0) {
         post.images.forEach(img => {
-            mediaItems.push({ type: 'image', url: img.startsWith('http') ? img : `http://localhost:5000${img}` });
+            mediaItems.push({ type: 'image', url: img.startsWith('http') ? img : `https://appdevproject2.onrender.com${img}` });
         });
     }
 
